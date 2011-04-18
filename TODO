@@ -1,0 +1,20 @@
+* General
+  - cmdline options
+  - daemonize
+  - plugin api?
+
+* Protocol:
+  - proper abstraction? [query api, player api]
+  - search api platform-independent?
+  - error handling?
+
+* Database
+  - videoentity baseclass, movie, tv-show, dvd as subclasses
+  - num played, lastpos, playeropts
+  - posterurl
+  - metadata fetching from imdb
+
+* Playerbackend
+  - get res, fbdev from environment
+  - Better abstraction
+  - restart if crashed or quitted
