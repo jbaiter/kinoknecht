@@ -374,15 +374,15 @@ class Controller(object):
         relfiledict = {} 
         for vf in videofiles:
             for r in self._movie_regex_list:
-                m = r.match(f)
-                if m:
-                    break
+                m = r.match(vf)
+                if m: break
             try: basename = m.group('basename')
             # This means the files are named like 'cd1.avi', etc, so we
             # try to derive the basename from the parent directory
             except: basename = os.path.basename(vf.path)
             if not basename in relfiledict.keys():
                 relfiledict[basename] = [vf]
+            else: relfiledict[basename].append()
         
         # Create Movies for the files
         for (basename, files) in relfiledict.iteritems():
@@ -398,67 +398,22 @@ class Controller(object):
         """
         Finds episodes and creates Episode and Show objects for them.
         """
-        raise NotImplementedError
-
-
-    def _check_related_files(self, flist, parentdir):
-        """
-        Checks if files are related (e.g. same movie split across different
-        files, episodes from same season) and creates one or more VideoEntity
-        objects with them if this is the case.
-        """
-
-        #FIXME: Looking at this code, I get a definitive feeling of
-        #       gut-wrenching nausea... Yes, I am ashamed
-        #TODO:  To improve performance, do this based on the database,
-        #       not the filesystem
-        # 
-        relfiledict = {}
-        for f in flist:
-            # Match against all specified patterns
-            for r in self._movie_regex_list + self._episode_regex_list:
-                m = r.match(f)
-                if m:
-                    # We identify the group (and later the Entites and
-                    # Collections) by their basename
-                    basename = m.group('basename')
-                    if not basename in relfiledict.keys():
-                        relfiledict[basename] = {}
-                        # Identify the file's media type (movie/tv-episode?)
-                        if r in self._movie_regex_list:
-                            relfiledict[basename]['type'] = 'movie'
-                        elif r in self._episode_regex_list:
-                            relfiledict[basename]['type'] = 'episode'
-                        relfiledict[basename]['files'] = []
-                    # Locate the files in the database and store them in our
-                    # dictionary together with the properties extracted from
-                    # the matches.
-                    #TODO: Add some sanity checking here
-                    vfid = self._session.query(Videofile).filter_by(
-                        path=parentdir, name=f).one().id
-                    filedict = { 'vfid': vfid,
-                                 'props': m.groupdict() }
-                    relfiledict[basename]['files'].append(filedict)
-                    break
-
-        for basename in relfiledict.keys():
-            files = [x['vfid'] for x in relfiledict[basename]['files']]
-            if relfiledict[basename]['type'] == 'movie':
-                veobj = self._create_videoentity(basename, files)
-                veobj.ve_type = 'movie'
-                veobj.save()
-            elif relfiledict[basename]['type'] == 'episode':
-                eplist = []
-                for ep in relfiledict[basename]['files']:
-                    veobj = self._create_videoentity(basename, [ep['vfid']])
-                    veobj.ve_type = 'episode'
-                    veobj.episode = ep['props']['episode']
-                    veobj.season = ep['props']['season']
-                    veobj.save()
-                    eplist.append(veobj.id)
-                vcobj = self._create_videocollection(basename, eplist)
-                vcobj.type = 'tvshow'
-                vcobj.save()
+        for vf in videofiles:
+            for r in self._episode_regex_list:
+                m = r.match(vf)
+                if m: break
+            basename = m.group('basename')
+            season_num = m.group('season')
+            episode_num = m.group('episode')
+            query = self._session.query(Show).filter_by(basename=basename)
+            if query.count() != 1:
+                show = self._create_show(basename)
+                self._session.add(show)
+            else: show = query.one()
+            episode = self._create_episode(season_num, episode_num)
+            show.episodes.append(episode)
+            self._session.add(episode)
+        self._session.commit()
 
 
     def _add_videofile(self, path, fname):
