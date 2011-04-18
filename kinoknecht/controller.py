@@ -364,6 +364,43 @@ class Controller(object):
             self._add_videofile(path, vfobject.name)
 
 
+    def _find_multifile_movies(self, *videofiles):
+        """
+        Finds movies that are split across several CDs/DVDs among the
+        specified Videofile objects and creates Movie objects for them.
+        """
+        
+        # Find all related files among videofiles
+        relfiledict = {} 
+        for vf in videofiles:
+            for r in self._movie_regex_list:
+                m = r.match(f)
+                if m:
+                    break
+            try: basename = m.group('basename')
+            # This means the files are named like 'cd1.avi', etc, so we
+            # try to derive the basename from the parent directory
+            except: basename = os.path.basename(vf.path)
+            if not basename in relfiledict.keys():
+                relfiledict[basename] = [vf]
+        
+        # Create Movies for the files
+        for (basename, files) in relfiledict.iteritems():
+            mov = Movie()
+            #TODO: Query IMDb with basename as query to find metadata?
+            mov.title = basename
+            mov.videofiles.extend(files)
+            self._session.add(mov)
+        self._session.commit()
+
+
+    def _find_episodes(self, *videofiles):
+        """
+        Finds episodes and creates Episode and Show objects for them.
+        """
+        raise NotImplementedError
+
+
     def _check_related_files(self, flist, parentdir):
         """
         Checks if files are related (e.g. same movie split across different
@@ -375,6 +412,7 @@ class Controller(object):
         #       gut-wrenching nausea... Yes, I am ashamed
         #TODO:  To improve performance, do this based on the database,
         #       not the filesystem
+        # 
         relfiledict = {}
         for f in flist:
             # Match against all specified patterns
