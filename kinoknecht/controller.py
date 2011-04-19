@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+from __future__ import absolute_import
 
 import pdb
 
@@ -10,13 +11,14 @@ from mimetypes import types_map
 
 import imdb
 import pyinotify
-from sqlalchemy import MetaData, create_engine
-from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
-from sqlalchemy.pool import StaticPool, NullPool
+from sqlalchemy import create_engine
+from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.sql.expression import and_
 
 from kinoknecht.midentify import midentify
-from kinoknecht.model import Session, Base, Videofile, Movie, Episode, Show, Person, Company
+from kinoknecht.model import (Session, Base, Videofile, Movie, Episode, Show,
+                              Person, Company)
+
 
 def get_video_mimetypes():
     # TODO: Why rely on mimetypes at all? Get list of supported video codecs
@@ -26,15 +28,19 @@ def get_video_mimetypes():
       ['.wmv', '.flv', '.mkv', '.rm', '.m2v'] if i not in types])
     return types
 
+
 def get_subtitle_mimetypes():
     types = ('.srt', '.ass', '.sub')
     return types
+
 
 def to_unicode(string):
     #TODO: This smells, there must be a more proper way to do this
     if not isinstance(string, unicode):
         return unicode(string, errors='replace')
-    else: return string
+    else:
+        return string
+
 
 class Controller(object):
     """
@@ -59,7 +65,6 @@ class Controller(object):
                            re.compile(
         r'(?P<basename>.*)(?P<season>\d)(?P<episode>\d{2,3}).*', re.I)]
 
-
     def __init__(self, dbfile, *videodirs):
         """
         Set up database connection and filesystem monitor
@@ -72,12 +77,11 @@ class Controller(object):
         if videodirs:
             self._videodirs = videodirs
             for viddir in videodirs:
-                #TODO: Move this to methods 'add_videodir' and 'update_videodir'
+                #TODO: Move this to 'add_videodir' and 'update_videodir'
                 self._scan_videodir(viddir)
                 #self._add_watchdir(viddir)
-    
+
     #___________________________Public API_____________________________________
-    
     def browse(self, path=None):
         """
         Returns a listing of all videofiles and subdirectories in a given
@@ -88,7 +92,8 @@ class Controller(object):
         if not path:
             return [[{'path':x} for x in self._videodirs], []]
 
-        qresult = self._session.query(Videofile).filter(Videofile.path.like('%' + path + '%'))
+        qresult = self._session.query(Videofile).filter(
+            Videofile.path.like('%' + path + '%'))
 
         # Get subdirs
         subdirs = []
@@ -97,13 +102,12 @@ class Controller(object):
             if splitpath[0] == path and {'path': i.path} not in subdirs:
                 ndict = {'path': i.path}
                 subdirs.append(ndict)
-        
+
         # Get videofiles
-        vfiles = [{'id' : i.id, 'name' : i.name} for i in\
+        vfiles = [{'id':i.id, 'name':i.name} for i in\
             self._session.query(Videofile).filter_by(path=path)]
 
         return [subdirs, vfiles]
-
 
     def statistics(self):
         """
@@ -116,7 +120,6 @@ class Controller(object):
         stat_dict['total_length'] = sum([x.length for x in vidfile_iter])
         return stat_dict
 
-
     def list_videos(self):
         """
         Returns a list of all Videofile objects in the database.
@@ -125,24 +128,25 @@ class Controller(object):
             for x in self._session.query(Videofile)]
         return vidlist
 
-
     def details(self, typestr, objid):
         """
         For the file of type <typestr> with the id <id> return a dictionary
         with all available public information.
         """
-        valid_types = {'file':Videofile, 'movie':Movie, 'show':Show,
-            'episode':Episode, 'person':Person, 'company':Company}
+        valid_types = {'file': Videofile, 'movie': Movie, 'show': Show,
+            'episode': Episode, 'person': Person, 'company': Company}
         if typestr not in valid_types.keys():
             #TODO: Return an error message
             return {}
         queryobj = valid_types[typestr]
         try:
             result = self._session.query(queryobj).filter_by(
-                id=objid).one().__dict__ 
+                id=objid).one().__dict__
             # Filter out private attributes
             result = dict(
-                (k,v) for (k,v) in result.iteritems() if not k.startswith('_'))
+                (k, v) for (k, v) in result.iteritems()
+                if not k.startswith('_')
+                )
             # JSON does not have a datetime type, so we pass a ISO formatted
             # string
             if 'creation_date' in result.keys():
@@ -151,7 +155,6 @@ class Controller(object):
         #FIXME: There should be some kind of message to the user here!
             result = {}
         return result
-
 
     def search_videofile(self, *sterms):
         """
@@ -177,7 +180,8 @@ class Controller(object):
                     "'value.'")
             if not sdict['field'] in db_fields:
                 raise ValueError(
-                    "Invalid field! Needs one of %s" % str(db_fields))
+                    "Invalid field! Needs one of %s" % str(db_fields)
+                    )
             if sdict['operator'] == 'equals':
                 conditions.append(
                     Videofile.__dict__[sdict['field']] == sdict['value'])
@@ -186,7 +190,9 @@ class Controller(object):
                     Videofile.__dict__[sdict['field']] != sdict['value'])
             elif sdict['operator'] == 'like':
                 conditions.append(
-                    Videofile.__dict__[sdict['field']].like("%"+sdict['value']+"%"))
+                    Videofile.__dict__[sdict['field']].like(
+                        "%" + sdict['value'] + "%")
+                    )
             elif sdict['operator'] == 'greater':
                 conditions.append(
                     Videofile.__dict__[sdict['field']] > sdict['value'])
@@ -194,12 +200,13 @@ class Controller(object):
                 conditions.append(
                     Videofile.__dict__[sdict['field']] < sdict['value'])
             else:
-                raise ValueError("""Invalid operator %s!""" % sdict['operator'])
+                raise ValueError(
+                    """Invalid operator %s!""" % sdict['operator']
+                    )
 
         results = [x.__dict__ for x in\
             self._session.query(Videofile).filter(and_(*conditions))]
         return results
-
 
     def search_metadata(self, searchterm):
         """
@@ -211,7 +218,6 @@ class Controller(object):
                     'id': int(x.movieID)} for x in s_result]
         return results
 
-
     def create_movie(self, vfids, imdbid):
         """
         Creates a Movie with the selected Videofiles and fetches its metadata
@@ -219,7 +225,7 @@ class Controller(object):
         """
         moviemeta = self._imdb.get_movie(imdbid)
         self._imdb.update(moviemeta)
-        
+
         movie = Movie()
         for vfid in vfids:
             vf = self._session.query(Videofile).get(vfid)
@@ -266,51 +272,8 @@ class Controller(object):
         self._session = Session()
         self._logger.debug("Connected to Database")
 
-
-#    def _setup_fswatcher(self):
-#        # Filesystem monitor
-#        #TODO: ThreadedNotifier does not work with SQLite, use what instead?
-#        self._wm = pyinotify.WatchManager()
-#        self._notifier = pyinotify.ThreadedNotifier(self._wm,
-#            self._EventHandler(self))
-#        self._notifier.start()
-#        self._logger.debug("Started filesystem monitoring")
-
-
     def _setup_imdb(self):
         self._imdb = imdb.IMDb()
-
-
-#    class _EventHandler(pyinotify.ProcessEvent):
-#        """
-#        Handles events triggered by the pyinotify notifier.
-#        """
-#        def __init__(self, controller):
-#            self._logger = logging.getLogger(
-#                "kinoknecht.controller._EventHandler")
-#            super(Controller._EventHandler, self).__init__()
-#            self._controller = controller
-#            self._fswatch_session = Session()
-#
-#        def process_IN_CLOSE_WRITE(self, event):
-#            self._logger.debug("Created: %s" % event.pathname)
-#            if not event.dir:
-#                (fpath, fname) = os.path.split(event.pathname)
-#                if fname.endswith(self._controller._ftypes_vid):
-#                    self._controller._add_videofile(fpath, fname)
-#                elif fname.endswith(self._controller._ftypes_sub):
-#                    self._controller._add_subtitle(fpath, fname)
-#
-#        def process_IN_DELETE(self, event):
-#            #TODO:  Query database for item with path and name and delete it
-#            self._logger.debug("Deleted: %s" % event.pathname)
-#             
-#        def process_IN_MOVED_TO(self, event):
-#            self._logger.debug("Moved to: %s" % event.pathname)
-#            #TODO:  Query database for items with source path/name
-#            #           exist -> update path/name
-#            #           !exist -> call add_videofile
-
 
     def _scan_videodir(self, path):
         """
@@ -332,18 +295,7 @@ class Controller(object):
                     # Seems like it, see if there's something to update
                     for vfobject in dbentries:
                         self._check_videofile(vfobject, viddir)
-            # See if we have any related files in the current path
-            # self._check_related_files(vidtree[viddir], viddir)
         self._session.commit()
-
-
-#    def _add_watchdir(self, path):
-#        """
-#        Adds a directory to the watchlist.
-#        """
-#        # TODO: Verify that the directory or one of its parent directories are
-#        #       not already being watched.
-#        self._wm.add_watch(path, self._mask, rec=True)
 
     def _check_videofile(self, vfobject, path):
         """
@@ -363,27 +315,30 @@ class Controller(object):
                 "the database, might be a duplicate!" % vfobject.name)
             self._add_videofile(path, vfobject.name)
 
-
     def _find_multifile_movies(self, *videofiles):
         """
         Finds movies that are split across several CDs/DVDs among the
         specified Videofile objects and creates Movie objects for them.
         """
-        
+
         # Find all related files among videofiles
-        relfiledict = {} 
+        relfiledict = {}
         for vf in videofiles:
             for r in self._movie_regex_list:
                 m = r.match(vf)
-                if m: break
-            try: basename = m.group('basename')
+                if m:
+                    break
+            try:
+                basename = m.group('basename')
             # This means the files are named like 'cd1.avi', etc, so we
             # try to derive the basename from the parent directory
-            except: basename = os.path.basename(vf.path)
+            except:
+                basename = os.path.basename(vf.path)
             if not basename in relfiledict.keys():
                 relfiledict[basename] = [vf]
-            else: relfiledict[basename].append()
-        
+            else:
+                relfiledict[basename].append()
+
         # Create Movies for the files
         for (basename, files) in relfiledict.iteritems():
             mov = Movie()
@@ -393,7 +348,6 @@ class Controller(object):
             self._session.add(mov)
         self._session.commit()
 
-
     def _find_episodes(self, *videofiles):
         """
         Finds episodes and creates Episode and Show objects for them.
@@ -401,7 +355,8 @@ class Controller(object):
         for vf in videofiles:
             for r in self._episode_regex_list:
                 m = r.match(vf)
-                if m: break
+                if m:
+                    break
             basename = m.group('basename')
             season_num = m.group('season')
             episode_num = m.group('episode')
@@ -409,12 +364,12 @@ class Controller(object):
             if query.count() != 1:
                 show = self._create_show(basename)
                 self._session.add(show)
-            else: show = query.one()
+            else:
+                show = query.one()
             episode = self._create_episode(season_num, episode_num)
             show.episodes.append(episode)
             self._session.add(episode)
         self._session.commit()
-
 
     def _add_videofile(self, path, fname):
         """
@@ -427,16 +382,16 @@ class Controller(object):
             self._logger.error(u"%s is not a recognizable video file!" % fname)
             return
         vfobject = Videofile(
-            name = to_unicode(fname),
-            path = to_unicode(path),
-            size = os.path.getsize(fullpath),
-            creation_date = datetime.fromtimestamp(
+            name=to_unicode(fname),
+            path=to_unicode(path),
+            size=os.path.getsize(fullpath),
+            creation_date=datetime.fromtimestamp(
                 os.path.getctime(fullpath)),
-            length = specs['length'],
-            video_width = specs['video_width'],
-            video_height = specs['video_height'],
-            video_bitrate = specs['video_bitrate'],
-            video_fps = specs['video_fps']
+            length=specs['length'],
+            video_width=specs['video_width'],
+            video_height=specs['video_height'],
+            video_bitrate=specs['video_bitrate'],
+            video_fps=specs['video_fps']
         )
         try:
             vfobject.video_format = str(specs['video_format'])
@@ -446,7 +401,6 @@ class Controller(object):
             pass
         self._session.add(vfobject)
         self._logger.info(u"Added %s to database!" % fname)
-
 
     def _add_subtitle(self, path, vidname):
         """
@@ -481,7 +435,6 @@ class Controller(object):
         movie.persons.append(pobj)
         movie.persons[-1].movie_roles[-1].role = role
 
-
     def _get_person(self, name):
         try:
             return self._session.query(Person).filter_by(name=name).one()
@@ -507,12 +460,11 @@ class Controller(object):
         except NoResultFound:
             return None
 
-
     def _search_ftree(self, path, ftypes):
         """
         Walk the filetree to find files with specified extensions
         """
-        
+
         filedict = {}
         for root, dirs, files in os.walk(to_unicode(path)):
             matchlist = []
