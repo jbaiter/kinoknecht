@@ -1,8 +1,6 @@
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
-import pdb
-
 import os
 import logging
 import re
@@ -10,7 +8,6 @@ from datetime import datetime
 from mimetypes import types_map
 
 import imdb
-import pyinotify
 from sqlalchemy import create_engine
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.sql.expression import and_
@@ -54,8 +51,6 @@ class Controller(object):
     # and extended with other filetypes mplayer can usually handle.
     _ftypes_vid = get_video_mimetypes()
     _ftypes_sub = get_subtitle_mimetypes()
-    _mask = pyinotify.IN_DELETE | pyinotify.IN_CLOSE_WRITE | \
-        pyinotify.IN_MOVED_TO | pyinotify.IN_MOVED_FROM
     _movie_regex_list = [re.compile(
         r'(?P<basename>.*)(?P<num>\d+) *of *(?:\d+).*', re.I),
                         re.compile(

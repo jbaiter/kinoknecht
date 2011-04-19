@@ -1,12 +1,12 @@
-import os.path
-
-from sqlalchemy import *
-from sqlalchemy.orm import relationship, backref, scoped_session, sessionmaker, create_session
+from sqlalchemy import (Table, Column, Integer, Float, ForeignKey, Enum,
+                        String, Unicode, Text, DateTime)
+from sqlalchemy.orm import relationship, scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.associationproxy import association_proxy
 
 Session = scoped_session(sessionmaker())
 Base = declarative_base()
+
 
 class Person(Base):
     """
@@ -30,12 +30,13 @@ class Person(Base):
     def __repr__(self):
         return "<Person %d, %s>" % (self.id, self.name)
 
+
 class PersonMovieRole(Base):
     """
     Role for a Person in a Movie
     """
     __tablename__ = 'persons_movies'
-    
+
     id = Column(Integer, primary_key=True)
     role = Column(Enum('none', 'actor', 'writer', 'director', 'producer'),
         default='none')
@@ -49,14 +50,16 @@ class PersonMovieRole(Base):
         self.person = person
 
     def __repr__(self):
-        return "<PersonMovieRole(%s, %d, %d)>" % (role, person_id, movie_id)
+        return "<PersonMovieRole(%s, %d, %d)>" % (self.role, self.person_id,
+                                                  self.movie_id)
+
 
 class CompanyMovieRole(Base):
     """
     Role for a Company in a Movie
     """
     __tablename__ = 'companies_movies'
-    
+
     id = Column(Integer, primary_key=True)
     role = Column(Enum('none', 'production', 'distribution'), default='none')
     company_id = Column(Integer, ForeignKey('companies.id'))
@@ -67,6 +70,7 @@ class CompanyMovieRole(Base):
     def __init__(self, movie=None, company=None):
         self.movie = movie
         self.company = company
+
 
 class Company(Base):
     """
@@ -116,7 +120,7 @@ class Videofile(Base):
     id = Column(Integer, primary_key=True)
     name = Column(Unicode)
     path = Column(Unicode)
-    size = Column(Integer) 
+    size = Column(Integer)
     creation_date = Column(DateTime)
 
     length = Column(Float)
@@ -156,6 +160,7 @@ episodes_videofiles = Table(
     Column('videofile_id', Integer, ForeignKey('videofiles.id'))
     )
 
+
 class Episode(Base, MetadataMixin):
     """ Episode object """
     __tablename__ = 'episodes'
@@ -187,6 +192,7 @@ movies_videofiles = Table(
     Column('movie_id', Integer, ForeignKey('movies.id')),
     Column('videofile_id', Integer, ForeignKey('videofiles.id'))
     )
+
 
 class Movie(Base, MetadataMixin):
     """ Movie object """
