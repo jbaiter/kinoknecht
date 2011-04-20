@@ -26,11 +26,6 @@ def get_video_mimetypes():
     return types
 
 
-def get_subtitle_mimetypes():
-    types = ('.srt', '.ass', '.sub')
-    return types
-
-
 def to_unicode(string):
     #TODO: This smells, there must be a more proper way to do this
     if not isinstance(string, unicode):
@@ -50,7 +45,6 @@ class Controller(object):
     # Video filetypes are taken from the MIME types installed on the system
     # and extended with other filetypes mplayer can usually handle.
     _ftypes_vid = get_video_mimetypes()
-    _ftypes_sub = get_subtitle_mimetypes()
     _movie_regex_list = [re.compile(
         r'(?P<basename>.*)(?P<num>\d+) *of *(?:\d+).*', re.I),
                         re.compile(
@@ -64,7 +58,7 @@ class Controller(object):
         """
         Set up database connection and filesystem monitor
         """
-        self._logger = logging.getLogger("kinoknecht.controller.Controller")
+        self._logger = logging.getLogger("controller")
         self._setup_db(dbfile)
         #self._setup_fswatcher()
         self._setup_imdb()
@@ -213,42 +207,18 @@ class Controller(object):
                     'id': int(x.movieID)} for x in s_result]
         return results
 
-    def create_movie(self, vfids, imdbid):
+    def create_movie(self, vfids, title=None, imdbid=None):
         """
         Creates a Movie with the selected Videofiles and fetches its metadata
-        from imdb.
+        from imdb if an imdbid is specified.
         """
-        moviemeta = self._imdb.get_movie(imdbid)
-        self._imdb.update(moviemeta)
-
-        movie = Movie()
+        
+        movie = Movie(title=title, imdb_id=imdbid)
         for vfid in vfids:
             vf = self._session.query(Videofile).get(vfid)
             movie.videofiles.append(vf)
-
-        movie.title = moviemeta['smart canonical title']
-        movie.alt_titles = str(moviemeta['akas'])
-        movie.color_info = str(moviemeta['color info'])
-        movie.cover_url = moviemeta['full-size cover url']
-        movie.imdb_id = imdbid
-        movie.languages = str(moviemeta['languages'])
-        movie.plot = str(moviemeta['plot'])
-        movie.runtimes = str(moviemeta['runtimes'])
-        movie.year = int(moviemeta['year'])
-
-        for p in moviemeta['cast']:
-            self._add_person(p, movie, 'actor')
-        for p in moviemeta['director']:
-            self._add_person(p, movie, 'director')
-        for p in moviemeta['producer']:
-            self._add_person(p, movie, 'producer')
-        for p in moviemeta['writer']:
-            self._add_person(p, movie, 'writer')
-
-        for c in moviemeta['distributor']:
-            self._add_company(c, movie, 'distribution')
-        for c in moviemeta['production companies']:
-            self._add_company(c, movie, 'production')
+        if imdbid:
+            movie.update_metadata
         self._session.add(movie)
         self._session.commit()
 
@@ -261,9 +231,11 @@ class Controller(object):
 
     #__________________________Private API_____________________________________
     def _setup_db(self, dbfile):
+        #TODO: Move this to the module initializer?
         engine = create_engine('sqlite:///' + dbfile)
         Base.metadata.bind = engine
         Base.metadata.create_all()
+#        Session.configure(bind=engine)
         self._session = Session()
         self._logger.debug("Connected to Database")
 
@@ -284,12 +256,13 @@ class Controller(object):
                 dbentries = self._session.query(Videofile).filter_by(
                     name=to_unicode(vidfile))
                 if not dbentries.count():
-                    self._add_videofile(viddir, vidfile)
-                    self._add_subtitle(viddir, vidfile)
+                    vfobj = Videofile(viddir, vidfile)
+                    vfobj.find_subtitle()
+                    self._session.add(vfobj)
                 else:
                     # Seems like it, see if there's something to update
-                    for vfobject in dbentries:
-                        self._check_videofile(vfobject, viddir)
+                    for vfobj in dbentries:
+                        self._check_videofile(vfobj, viddir)
         self._session.commit()
 
     def _check_videofile(self, vfobject, path):
@@ -308,7 +281,8 @@ class Controller(object):
             # Seems we have a duplicate!
             self._logger.warning(u"File with name '%s' already exists in"
                 "the database, might be a duplicate!" % vfobject.name)
-            self._add_videofile(path, vfobject.name)
+            new_vfobj = Videofile(path, vfobject.name)
+            self._session.add(new_vfobj)
 
     def _find_multifile_movies(self, *videofiles):
         """
@@ -336,12 +310,8 @@ class Controller(object):
 
         # Create Movies for the files
         for (basename, files) in relfiledict.iteritems():
-            mov = Movie()
             #TODO: Query IMDb with basename as query to find metadata?
-            mov.title = basename
-            mov.videofiles.extend(files)
-            self._session.add(mov)
-        self._session.commit()
+            self.create_movie(files, title=basename)
 
     def _find_episodes(self, *videofiles):
         """
@@ -365,95 +335,6 @@ class Controller(object):
             show.episodes.append(episode)
             self._session.add(episode)
         self._session.commit()
-
-    def _add_videofile(self, path, fname):
-        """
-        Add a Videofile object to database by getting data from the actual
-        file on the harddisk.
-        """
-        fullpath = os.path.join(path, fname)
-        specs = midentify(fullpath)
-        if len(specs.keys) < 2:
-            self._logger.error(u"%s is not a recognizable video file!" % fname)
-            return
-        vfobject = Videofile(
-            name=to_unicode(fname),
-            path=to_unicode(path),
-            size=os.path.getsize(fullpath),
-            creation_date=datetime.fromtimestamp(
-                os.path.getctime(fullpath)),
-            length=specs['length'],
-            video_width=specs['video_width'],
-            video_height=specs['video_height'],
-            video_bitrate=specs['video_bitrate'],
-            video_fps=specs['video_fps']
-        )
-        try:
-            vfobject.video_format = str(specs['video_format'])
-            vfobject.audio_bitrate = specs['audio_bitrate']
-            vfobject.audio_format = str(specs['audio_format'])
-        except KeyError:
-            pass
-        self._session.add(vfobject)
-        self._logger.info(u"Added %s to database!" % fname)
-
-    def _add_subtitle(self, path, vidname):
-        """
-        Search for subtitle files with the same name in the same directory
-        and add it to the corresponding Videofile object.
-        """
-        #TODO: Generalize this to allow for more flexible subtitle search
-        basename = os.path.splitext(vidname)[0]
-        for f in os.listdir(path):
-            (fname, fext) = os.path.splitext(f)
-            fext = fext
-
-            # Subtitles with the same basename as the corresponding videofile
-            if fname == basename and fext in self._ftypes_sub:
-                vfobj = self._session.query(Videofile).filter_by(
-                    path=path, name=vidname).one()
-                vfobj.subfilepath = os.path.join(path, f)
-                self._session.add(vfobj)
-                self._logger.info("Added subtitle for %s" % vfobj.name)
-        self._session.commit()
-
-    def _create_person(self, person):
-        pobj = Person(person['canonical name'])
-        pobj.imdbid = int(person.personID)
-        self._session.add(pobj)
-        return pobj
-
-    def _add_person(self, person, movie, role):
-        pobj = self._get_person(person['canonical name'])
-        if not pobj:
-            pobj = self._create_person(person)
-        movie.persons.append(pobj)
-        movie.persons[-1].movie_roles[-1].role = role
-
-    def _get_person(self, name):
-        try:
-            return self._session.query(Person).filter_by(name=name).one()
-        except NoResultFound:
-            return None
-
-    def _create_company(self, company):
-        cobj = Company(company['name'])
-        cobj.imdbid = int(company.companyID)
-        self._session.add(cobj)
-        return cobj
-
-    def _add_company(self, company, movie, role):
-        cobj = self._get_company(company['name'])
-        if not cobj:
-            cobj = self._create_company(company)
-        movie.companies.append(cobj)
-        movie.companies[-1].movie_roles[-1].role = role
-
-    def _get_company(self, name):
-        try:
-            return self._session.query(Company).filter_by(name=name).one()
-        except NoResultFound:
-            return None
 
     def _search_ftree(self, path, ftypes):
         """
