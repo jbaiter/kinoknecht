@@ -4,7 +4,6 @@ from __future__ import absolute_import
 import os
 import logging
 import re
-from datetime import datetime
 from mimetypes import types_map
 
 import imdb
@@ -12,7 +11,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.sql.expression import and_
 
-from kinoknecht.midentify import midentify
 from kinoknecht.model import (Session, Base, Videofile, Movie, Episode, Show,
                               Person, Company)
 
@@ -105,8 +103,12 @@ class Controller(object):
         stat_dict = {}
         vidfile_iter = self._session.query(Videofile)
         stat_dict['vidfile_count'] = self._session.query(Videofile).count()
+        stat_dict['movie_count'] = self._session.query(Movie).count()
+        stat_dict['show_count'] = self._session.query(Show).count()
+        stat_dict['episode_count'] = self._session.query(Episode).count()
         stat_dict['total_size'] = sum([x.size for x in vidfile_iter])
-        stat_dict['total_length'] = sum([x.length for x in vidfile_iter])
+        stat_dict['total_length'] = sum([x.length for x in vidfile_iter
+                                        if x.length])
         return stat_dict
 
     def list_videos(self):
@@ -130,12 +132,7 @@ class Controller(object):
         queryobj = valid_types[typestr]
         try:
             result = self._session.query(queryobj).filter_by(
-                id=objid).one().__dict__
-            # Filter out private attributes
-            result = dict(
-                (k, v) for (k, v) in result.iteritems()
-                if not k.startswith('_')
-                )
+                id=objid).one().get_infodict()
             # JSON does not have a datetime type, so we pass a ISO formatted
             # string
             if 'creation_date' in result.keys():
@@ -218,16 +215,30 @@ class Controller(object):
             vf = self._session.query(Videofile).get(vfid)
             movie.videofiles.append(vf)
         if imdbid:
-            movie.update_metadata
+            movie.update_metadata()
         self._session.add(movie)
         self._session.commit()
+        return movie
 
-    def add_to_show(self, vfids, showid=None, showimdbid=None):
-        """
-        Adds Videofiles as Episodes to a Show and optionally creates the show
-        if it does not exist.
-        """
-        raise NotImplementedError
+    def create_show(self, basename=None, imdbid=None):
+        show = Show(basename=basename, imdb_id=imdbid)
+        if imdbid:
+            show.update_metadata()
+        self._session.add(show)
+        self._session.commit()
+        return show
+    
+    def create_episode(self, season_num, episode_num, show=None):
+        episode = Episode(season_num=season_num, episode_num=episode_num,
+                          show=show)
+        if show.imdb_id:
+            show_episodes = self._imdb.get_movie_episodes(show.imdb_id)
+            episode.imdb_id = show_episodes['data']['episodes'][int(
+                season_num)][int(episode_num)].movieID
+            episode.update_metadata()
+        self._session.add(episode)
+        return episode
+
 
     #__________________________Private API_____________________________________
     def _setup_db(self, dbfile):
@@ -249,6 +260,7 @@ class Controller(object):
         #TODO:  Only collect files to be added and add them all at once to the
         #       db to improve performance
         self._logger.info(u"Scanning directory '%s' for video files" % path)
+        scanobjs = []
         vidtree = self._search_ftree(path, self._ftypes_vid)
         for viddir in vidtree.keys():
             for vidfile in vidtree[viddir]:
@@ -258,12 +270,15 @@ class Controller(object):
                 if not dbentries.count():
                     vfobj = Videofile(viddir, vidfile)
                     vfobj.find_subtitle()
-                    self._session.add(vfobj)
+                    scanobjs.append(vfobj)
                 else:
                     # Seems like it, see if there's something to update
                     for vfobj in dbentries:
                         self._check_videofile(vfobj, viddir)
+        self._session.add_all(scanobjs)
         self._session.commit()
+        self._find_multifile_movies(*scanobjs)
+        self._find_episodes(*scanobjs)
 
     def _check_videofile(self, vfobject, path):
         """
@@ -294,7 +309,7 @@ class Controller(object):
         relfiledict = {}
         for vf in videofiles:
             for r in self._movie_regex_list:
-                m = r.match(vf)
+                m = r.match(vf.name)
                 if m:
                     break
             try:
@@ -304,9 +319,9 @@ class Controller(object):
             except:
                 basename = os.path.basename(vf.path)
             if not basename in relfiledict.keys():
-                relfiledict[basename] = [vf]
+                relfiledict[basename] = [vf.id]
             else:
-                relfiledict[basename].append()
+                relfiledict[basename].append(vf.id)
 
         # Create Movies for the files
         for (basename, files) in relfiledict.iteritems():
@@ -319,20 +334,23 @@ class Controller(object):
         """
         for vf in videofiles:
             for r in self._episode_regex_list:
-                m = r.match(vf)
+                m = r.match(vf.name)
                 if m:
                     break
+            if not m:
+                return
             basename = m.group('basename')
             season_num = m.group('season')
             episode_num = m.group('episode')
             query = self._session.query(Show).filter_by(basename=basename)
             if query.count() != 1:
-                show = self._create_show(basename)
+                show = self.create_show(basename)
                 self._session.add(show)
             else:
                 show = query.one()
-            episode = self._create_episode(season_num, episode_num)
-            show.episodes.append(episode)
+            episode = self.create_episode(season_num, episode_num)
+            episode.show = show
+#            show.episodes.append(episode)
             self._session.add(episode)
         self._session.commit()
 

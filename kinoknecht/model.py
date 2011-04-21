@@ -16,7 +16,7 @@ from kinoknecht.midentify import midentify
 Session = scoped_session(sessionmaker())
 Base = declarative_base()
 
-i = imdb.IMDb()
+imdb = imdb.IMDb()
 logger = logging.getLogger("model")
 
 
@@ -26,7 +26,10 @@ def to_unicode(string):
     """
     #TODO: This smells, there must be a more proper way to do this
     if not isinstance(string, unicode):
-        return unicode(string, errors='replace')
+        try:
+            return unicode(string)
+        except UnicodeDecodeError:
+            return unicode(string, errors='replace')
     else:
         return string
 
@@ -215,8 +218,8 @@ class MetadataMixin(object):
         """
         if not self.imdb_id:
             raise ValueError('self.imdb_id is not specified!')
-        meta = self._imdb.get_movie(self.imdb_id)
-        self._imdb.update(meta)
+        meta = imdb.get_movie(self.imdb_id)
+        imdb.update(meta)
 
         # Fields that are named differently than in the IMDbPy object
         imdbmap = {
@@ -240,8 +243,22 @@ class MetadataMixin(object):
 
         for imdbkey in meta.keys():
             if hasattr(self, imdbkey):
+                # If the field is an iterable, we store its string
+                # representation which we can eval() for retrieval later on.
+                #FIXME: This is a *HUGE* security hole as it allows the
+                #       execution of arbitrary code, maybe pickeling would
+                #       be a better choice (would it really?)
+                if getattr(meta[imdbkey], '__iter__', False):
+                    meta[imdbkey] = to_unicode(meta[imdbkey])
+
+                # We want to store 'year' as an Integer to allow for better
+                # sorting.
+                if imdbkey == 'year':
+                    meta[imdbkey] = int(meta[imdbkey])
                 setattr(self, imdbkey, meta[imdbkey])
             elif imdbkey in imdbmap.keys():
+                if getattr(meta[imdbkey], '__iter__', False):
+                    meta[imdbkey] = to_unicode(meta[imdbkey])
                 setattr(self, imdbmap[imdbkey], meta[imdbkey])
 
         for rolekey in personmap.keys():
@@ -254,18 +271,17 @@ class MetadataMixin(object):
         for rolekey in companymap.keys():
             try:
                 for c in meta[rolekey]:
-                    self._add_company(p, companymap[rolekey])
+                    self._add_company(c, companymap[rolekey])
             except KeyError:
                 pass
 
     def _create_person(self, person):
-        pobj = Person(person['canonical name'])
-        pobj.imdbid = int(person.personID)
+        pobj = Person(person['canonical name'], person.personID)
         self._session.add(pobj)
         return pobj
 
     def _add_person(self, person, role):
-        pobj = self._get_person(person['canonical name'])
+        pobj = self._get_person(person.personID)
         if not pobj:
             pobj = self._create_person(person)
         self.persons.append(pobj)
@@ -278,13 +294,12 @@ class MetadataMixin(object):
             return None
 
     def _create_company(self, company):
-        cobj = Company(company['name'])
-        cobj.imdbid = int(company.companyID)
+        cobj = Company(company['name'], company.companyID)
         self._session.add(cobj)
         return cobj
 
     def _add_company(self, company, role):
-        cobj = self._get_company(company['name'])
+        cobj = self._get_company(company.companyID)
         if not cobj:
             cobj = self._create_company(company)
         self.companies.append(cobj)
@@ -401,6 +416,8 @@ class Show(Base, KinoBase, MetadataMixin):
     episodes = relationship("Episode", backref='show')
     show_type = Column(String)
     complete_num_episodes = Column(Integer)
+    #FIXME: This is a rather ugly solution....
+    basename = Column(Unicode)
 
 
 movies_videofiles = Table(

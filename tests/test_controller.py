@@ -118,7 +118,7 @@ class TestController(object):
             {u'id': 440972, u'title': u'Meaning of Life, The (2005/I)'}]
 
     def testCreateMovie(self):
-        self.c.create_movie([3,2], 85959)
+        self.c.create_movie([3,2], imdbid=85959)
         assert self.c.details('movie', '1')
 
     def testSearchVideofileByName(self):
