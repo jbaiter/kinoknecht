@@ -25,6 +25,7 @@ def to_unicode(string):
     Force unicode on string
     """
     #TODO: This smells, there must be a more proper way to do this
+    #TODO: Move this to a 'util'/'helpers' module
     if not isinstance(string, unicode):
         try:
             return unicode(string)
@@ -41,6 +42,15 @@ class KinoBase():
 
     _session = Session()
     id = Column(Integer, primary_key=True)
+
+    @classmethod
+    def get(cls, id):
+        return cls._session.query(cls).get(id)
+
+    @classmethod
+    def search(cls, squery):
+        return cls._session.query(cls).filter(squery)
+
 
     def get_infodict(self, *keys):
         """
