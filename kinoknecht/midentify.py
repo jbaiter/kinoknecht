@@ -18,6 +18,7 @@ PAIR_REGEX = re.compile(r"^(?P<key>[^=\n]+)=(?P<value>(\\\n|.)*)$",
         flags=re.MULTILINE)
 UNESCAPE_REGEX = re.compile(r"\\(.)", flags=re.DOTALL)
 
+
 class MidentifyFile(object):
 
     """
@@ -25,7 +26,7 @@ class MidentifyFile(object):
     the metadata can be accessed either through [] or simple . notation and
     will be named after their midentify counterparts, lowercased, with ID_
     removed from the beginning
-    
+
     >>> f = MidentifyFile("ID_VIDEO_WIDTH=1920\\nID_VIDEO_HEIGHT=1080")
     >>> f.video_width
     1920
@@ -67,8 +68,10 @@ class MidentifyFile(object):
         try:
             return ast.literal_eval(val)
         except Exception:
-            try: return unicode(val)
-            except UnicodeDecodeError: return val
+            try:
+                return unicode(val)
+            except UnicodeDecodeError:
+                return val
 
     def __getitem__(self, key):
         if key not in self.keys:
@@ -85,6 +88,7 @@ def midentify(filename):
     output = Popen([MIDENTIFY_CMD, filename], stdout=PIPE).communicate()[0]
     return MidentifyFile(output)
 
+
 def _test():
     """
     Tests this module
@@ -94,4 +98,3 @@ def _test():
 
 if __name__ == '__main__':
     _test()
-    

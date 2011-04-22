@@ -1,10 +1,10 @@
-import os
 import logging
 
 import mplayer
 
 #TODO: Do we really need to subclass mplayer.Player? What for?
 #TODO: Abstract to allow for multiple player backends (VLC? Gstreamer? Xine?)
+
 
 class Player(mplayer.Player):
     """
