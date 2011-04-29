@@ -1,40 +1,33 @@
 from __future__ import absolute_import
 
 import logging
+import os
 
-from wsgiref.simple_server import make_server
-import lovely_jsonrpc.dispatcher
-import lovely_jsonrpc.wsgi
+import config
 
-from kinoknecht.controller import Controller
-from kinoknecht.player import Player
+LOGLEVELS = {'debug': logging.DEBUG, 'info': logging.INFO,
+             'warning': logging.WARNING, 'error': logging.ERROR,
+             'critical': logging.CRITICAL}
 
 
-class Kinoknecht(object):
-    def __init__(self, address, port, dbfile, video_dirs, player_args):
-        self.logger = logging.getLogger("kinoknecht")
+def setup_logging():
+    # Start logging
+    log_file = os.path.abspath(config.log_file)
+    log_level = LOGLEVELS.get(config.log_level,
+        logging.NOTSET)
+    if not os.path.exists(os.path.dirname(log_file)):
+        os.makedirs(os.path.dirname(log_file))
+    filelog_format = "%(asctime)s - %(levelname)s - %(message)s"
+    logging.basicConfig(filename=log_file, level=log_level,
+        format=filelog_format)
 
-        # Start backend
-        self.controller = Controller(dbfile, *video_dirs)
-        self.player = Player(args=player_args)
+    # Set up console output for easier debugging
+    # TODO: Trigger this via cmdline option
+    #ch = logging.StreamHandler()
+    #ch.setLevel(logging.DEBUG)
+    #formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+    #ch.setFormatter(formatter)
+    #logging.getLogger('').addHandler(ch)
 
-        # Set up the WSGI/JSONRPC server
-        player_dispatcher = lovely_jsonrpc.dispatcher.JSONRPCDispatcher(
-            self.player)
-        ctrl_dispatcher = lovely_jsonrpc.dispatcher.JSONRPCDispatcher(
-            self.controller)
-        app = lovely_jsonrpc.wsgi.WSGIJSONRPCApplication(
-            {'player': player_dispatcher,
-             'collection': ctrl_dispatcher}
-            )
-        self.server = make_server(address, port, app)
 
-    def serve(self):
-        # Start the server
-        self.logger.info("Serving Kinoknecht on %s:%d"\
-            % self.server.server_address)
-        while True:
-            try:
-                self.server.handle_request()
-            except KeyboardInterrupt:
-                self.player.quit()
+setup_logging()
