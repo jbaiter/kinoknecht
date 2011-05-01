@@ -26,3 +26,4 @@ pip-log.txt
 PYSMELLTAGS
 .coverage
 .noseids
+*~
