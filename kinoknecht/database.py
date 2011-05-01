@@ -97,138 +97,6 @@ class KinoBase(object):
             )
 
 
-class Person(Base, KinoBase):
-    """
-    Represents a person involved in Movies, Episodes and Shows
-    """
-    __tablename__ = 'persons'
-
-    imdb_id = Column(Integer, unique=True)
-    name = Column(Unicode)
-    birth_date = Column(String)
-    death_date = Column(String)
-    biography = Column(Text)
-    quotes = Column(Text)
-    movies = association_proxy('movie_roles', 'movie',
-        creator=lambda m: PersonMovieRole(movie=m))
-    episodes = association_proxy('episode_roles', 'episode',
-        creator=lambda e: PersonEpisodeRole(episode=e))
-
-    def __init__(self, name, imdbid):
-        self.name = name
-        self.imdb_id = imdbid
-
-    def __repr__(self):
-        return "<Person %d, %s>" % (self.id, self.name)
-
-    def update_info(self):
-        meta = imdb.get_person(self.imdb_id)
-        imdb.update(meta)
-        self.birth_date = int(meta['birth date'])
-        if 'death date' in meta.keys():
-            self.death_date = meta['death date']
-        if 'mini biography' in meta.keys():
-            self.biography = str(meta['mini biography'])
-        if 'quotes' in meta.keys():
-            self.quotes = str(meta['quotes'])
-
-
-class PersonMovieRole(Base):
-    """ Role for a Person in a Movie. """
-    __tablename__ = 'persons_movies'
-
-    id = Column(Integer, primary_key=True)
-    role = Column(Enum('none', 'actor', 'writer', 'director', 'producer'),
-        default='none')
-    person_id = Column(Integer, ForeignKey('persons.id'))
-    person = relationship('Person', backref='movie_roles')
-    movie_id = Column(Integer, ForeignKey('movies.id'))
-#    movie = relationship('Movie', backref='persons_roles')
-    movie = relationship('Movie')
-
-    def __init__(self, movie=None, person=None):
-        self.movie = movie
-        self.person = person
-
-
-class PersonEpisodeRole(Base):
-    """ Role for a Person in an Episode. """
-    __tablename__ = 'persons_episodes'
-
-    id = Column(Integer, primary_key=True)
-    role = Column(Enum('none', 'actor', 'writer', 'director', 'producer'),
-        default='none')
-    person_id = Column(Integer, ForeignKey('persons.id'))
-    person = relationship('Person', backref='episode_roles')
-    episode_id = Column(Integer, ForeignKey('episodes.id'))
-#    episode = relationship('Episode', backref='persons_roles')
-    episode = relationship('Episode')
-
-    def __init__(self, episode=None, person=None):
-        self.episode = episode
-        self.person = person
-
-
-class Company(Base):
-    """ Represents a company involved in the production and/or distribution
-    of a Movie, Episode or Show.
-    """
-    __tablename__ = 'companies'
-
-    id = Column(Integer, primary_key=True)
-    imdb_id = Column(Integer, unique=True)
-    name = Column(Unicode)
-    country = Column(Unicode)
-    movies = association_proxy('movie_roles', 'movie',
-        creator=lambda m: CompanyMovieRole(movie=m))
-
-    def __init__(self, name, imdbid):
-        self.name = name
-        self.imdb_id = imdbid
-
-    def __repr__(self):
-        return "<Company %d, %s>" % (self.id, self.name)
-
-    def update_info(self):
-        meta = imdb.get_company(self.imdb_id)
-        imdb.update(meta)
-        self.birth_date = int(meta['birth date'])
-        if 'country' in meta.keys():
-            self.country = str(meta['death date'])
-
-
-class CompanyMovieRole(Base):
-    """ Role for a Company in a Movie. """
-    __tablename__ = 'companies_movies'
-
-    id = Column(Integer, primary_key=True)
-    role = Column(Enum('none', 'production', 'distribution'), default='none')
-    company_id = Column(Integer, ForeignKey('companies.id'))
-    company = relationship('Company', backref='movie_roles')
-    movie_id = Column(Integer, ForeignKey('movies.id'))
-    movie = relationship('Movie', backref='companies_roles')
-
-    def __init__(self, movie=None, company=None):
-        self.movie = movie
-        self.company = company
-
-
-class CompanyEpisodeRole(Base):
-    """ Role for a Company in an Episode. """
-    __tablename__ = 'companies_episodes'
-
-    id = Column(Integer, primary_key=True)
-    role = Column(Enum('none', 'production', 'distribution'), default='none')
-    company_id = Column(Integer, ForeignKey('companies.id'))
-    company = relationship('Company', backref='episode_roles')
-    episode_id = Column(Integer, ForeignKey('episodes.id'))
-    episode = relationship('Episode', backref='companies_roles')
-
-    def __init__(self, episode=None, company=None):
-        self.episode = episode
-        self.company = company
-
-
 class MetadataMixin(object):
     """ Metadata specific to either VideoEntity or VideoCollection objects."""
 
@@ -250,42 +118,11 @@ class MetadataMixin(object):
     def imdbid_setter(self, imdbid):
         self._imdb_id = imdbid
         self.update_metadata()
-    
+
     @declared_attr
     def imdb_id(cls):
         return synonym('_imdb_id', descriptor=property(
             cls.imdbid_getter, cls.imdbid_setter))
-
-    @declared_attr
-    def persons_roles(cls):
-        if cls.__name__ == 'Movie':
-            return relationship('PersonMovieRole')
-        elif cls.__name__ == 'Episode':
-            return relationship('PersonEpisodeRole')
-        else:
-            return None
-
-    @declared_attr
-    def persons(cls):
-        if cls.__name__ == 'Episode':
-            return association_proxy('persons_roles', 'person',
-                                creator=lambda p: PersonEpisodeRole(person=p))
-        elif cls.__name__ == 'Movie':
-            return association_proxy('persons_roles', 'person',
-                                creator=lambda p: PersonMovieRole(person=p))
-        else:
-            return None
-
-    @declared_attr
-    def companies(cls):
-        if cls.__name__ == 'Episode':
-            return association_proxy('companies_roles', 'company',
-                            creator=lambda c: CompanyEpisodeRole(company=c))
-        elif cls.__name__ == 'Movie':
-            return association_proxy('companies_roles', 'company',
-                            creator=lambda c: CompanyMovieRole(company=c))
-        else:
-            return None
 
     def update_metadata(self):
         """ Updates the metadata of the object from imdb, using its imdb_id
@@ -302,19 +139,6 @@ class MetadataMixin(object):
             'color info': 'color_info',
             'akas': 'alt_titles',
             'full-size cover url': 'cover_url'
-        }
-
-        # Role descriptions from IMDbPy mapped to their equivalent in
-        # our schema
-        personmap = {
-            'cast': 'actor',
-            'director': 'director',
-            'producer': 'producer',
-            'writer': 'writer'
-        }
-        companymap = {
-            'distributor': 'distribution',
-            'production companies': 'production'
         }
 
         for imdbkey in meta.keys():
@@ -336,56 +160,6 @@ class MetadataMixin(object):
                 if getattr(meta[imdbkey], '__iter__', False):
                     meta[imdbkey] = to_unicode(meta[imdbkey])
                 setattr(self, imdbmap[imdbkey], meta[imdbkey])
-
-        for rolekey in personmap.keys():
-            try:
-                for p in meta[rolekey]:
-                    self._add_person(p, personmap[rolekey])
-            except KeyError:
-                pass
-
-        for rolekey in companymap.keys():
-            try:
-                for c in meta[rolekey]:
-                    self._add_company(c, companymap[rolekey])
-            except KeyError:
-                pass
-
-    def _create_person(self, person):
-        pobj = Person(person['canonical name'], person.personID)
-        self._session.add(pobj)
-        return pobj
-
-    def _add_person(self, person, role):
-        pobj = self._get_person(person.personID)
-        if not pobj:
-            pobj = self._create_person(person)
-        self.persons.append(pobj)
-        self.persons[-1].movie_roles[-1].role = role
-
-    def _get_person(self, imdbid):
-        try:
-            return self._session.query(Person).filter_by(imdb_id=imdbid).one()
-        except NoResultFound:
-            return None
-
-    def _create_company(self, company):
-        cobj = Company(company['name'], company.companyID)
-        self._session.add(cobj)
-        return cobj
-
-    def _add_company(self, company, role):
-        cobj = self._get_company(company.companyID)
-        if not cobj:
-            cobj = self._create_company(company)
-        self.companies.append(cobj)
-        self.companies[-1].movie_roles[-1].role = role
-
-    def _get_company(self, imdbid):
-        try:
-            return self._session.query(Company).filter_by(imdb_id=imdbid).one()
-        except NoResultFound:
-            return None
 
 
 class Videofile(Base, KinoBase):
