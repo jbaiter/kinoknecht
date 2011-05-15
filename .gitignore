@@ -28,3 +28,4 @@ PYSMELLTAGS
 .noseids
 *~
 *.db
+.ropeproject*~

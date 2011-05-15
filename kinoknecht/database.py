@@ -25,4 +25,3 @@ def init_db():
 def shutdown_db():
     db_session.remove()
     Base.metadata.drop_all(bind=engine)
-
