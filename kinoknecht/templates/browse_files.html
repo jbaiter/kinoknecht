@@ -1,0 +1,43 @@
+{% extends "browse_base.html" %}
+{% block hidden %}
+    <div style="display:none">
+    <div id="imdb_window">
+        <div id="searchbox">
+            <input type=text size=25 name="imdbquery"><a href=# id=imdb_query>go</a>
+        </div>
+        <ul id=imdb_results></ul>
+    </div>
+    </div>
+    <div style="display:none">
+    <div id="show_window">
+        <div id="searchbox">
+            <input type="text" size="25" name="showquery"><a href=#show_query id=show_query>go</a>
+        </div>
+        <a href=#new_show id=new_show>create show</a>
+        <ul id=show_results></ul>
+    </div>
+    </div>
+{% endblock hidden %}
+{% block table_rows %}
+    <tr>
+        <th><input type="checkbox" name="tickall" value="1"></th>
+        <th>filename</th>
+        <th>length</th>
+        <th>filesize</th>
+        <th>created</th>
+        <th>actions</th>
+    </tr>
+    {% for vfile in objlist %}
+        <tr class="entryrow" id="{{vfile.id}}">
+            <td><input type="checkbox" name="edittick" value="{{vfile.id}}"></td>
+            <td>{{vfile.name}}</td>
+            <td>{{vfile.length}}</td>
+            <td>{{vfile.size}}</td>
+            <td>{{vfile.creation_date}}</td>
+            <td><a href="{{url_for('play', category=category, id=vfile.id)}}">play</a>.
+                <a href="#imdb_window" class="createmovie" rel="facybox">create movie</a>
+                <a href="#show_window" class="addtoshow" rel="facybox">add to show</a>
+            </td>
+        <tr>
+    {% endfor %} 
+{% endblock %}

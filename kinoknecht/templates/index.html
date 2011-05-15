@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block logo %}
+    <h1>kinoknecht</h1>
+{% endblock %}
+
+{% block content %}
+    <div id="searchmask">
+        <form action="{{url_for("search", category="movie", field="title")}}" method="get">
+        <a href="">advanced</a>
+        <input name="searchstr" value="enter search string" type="text" size="30"><input type="submit" value="go">
+
+        <div id="searchopts">
+            <a href="details/movie/random">random</a> . <a href="browse">browse</a> . <a href="browse/unassigned">unassigned</a>
+        </div>
+    </div>
+{% endblock content %}
