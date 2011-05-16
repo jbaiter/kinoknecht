@@ -23,11 +23,10 @@ def setup_logging():
 
     # Set up console output for easier debugging
     # TODO: Trigger this via cmdline option
-    #ch = logging.StreamHandler()
-    #ch.setLevel(logging.DEBUG)
-    #formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
-    #ch.setFormatter(formatter)
-    #logging.getLogger('').addHandler(ch)
-
+    kk_logger = logging.getLogger('kinoknecht')
+    kk_handler = logging.StreamHandler()
+    formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+    kk_handler.setFormatter(formatter)
+    kk_logger.addHandler(kk_handler)
 
 setup_logging()

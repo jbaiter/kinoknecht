@@ -27,3 +27,4 @@ PYSMELLTAGS
 .coverage
 .noseids
 *~
+*.db

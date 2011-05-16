@@ -7,8 +7,8 @@ config.video_dirs = ['tests/testdir']
 config.log_file = 'tests/logdir/dummy.log'
 config.db_file = 'tests/dummy.db'
 
-from kinoknecht.database import (setup_db, destroy_db, Videofile, Movie, Show,
-                                 Episode)
+from kinoknecht.database import init_db, shutdown_db
+from kinoknecht.models import Videofile, Movie, Show, Episode
 
 TESTVIDSRC = 'tests/test.avi'
 TESTDIR = 'tests/testdir'
@@ -36,17 +36,16 @@ class TestDatabase(object):
         open(join(TESTDIR, TESTMOVSUB), 'w').close()
         shutil.copyfile(TESTVIDSRC, join(TESTSHOW, TESTEPI1))
         shutil.copyfile(TESTVIDSRC, join(TESTSHOW, TESTEPI2))
-        setup_db()
+        init_db()
         Videofile.update_all()
 
     def tearDown(self):
         shutil.rmtree(TESTDIR)
-        destroy_db()
-        os.remove(config.db_file)
+        shutdown_db()
 
     def testSubtitleScan(self):
         assert (Videofile.search(Videofile.name == TESTCD1).one().subfilepath
-                == join(TESTDIR, TESTMOVSUB))
+                == os.path.abspath(join(TESTDIR, TESTMOVSUB)))
 
     def testSpecExtraction(self):
         assert (Videofile.search(Videofile.name == TESTMOV).one()
@@ -56,7 +55,8 @@ class TestDatabase(object):
         assert Videofile.browse() == [['tests/testdir'], []]
 
     def testSubdirBrowse(self):
-        result = Videofile.browse('tests/testdir/How.I.Met.Your.Mother.S01')
+        result = Videofile.browse(
+                os.path.abspath('tests/testdir/How.I.Met.Your.Mother.S01'))
         assert (
             result[1][0].name == u'How.I.Met.Your.Mother.108.avi' and
             result[1][1].name == u'How.I.Met.Your.Mother.S01E04.avi'
@@ -74,7 +74,7 @@ class TestDatabase(object):
         }
 
     def testListVideos(self):
-        result = Videofile.list()
+        result = Videofile.search()
         assert (
             result[0].name == u'The Meaning of Life.avi' and
             result[1].name == u'Spam and Eggs CD2.avi' and
@@ -97,7 +97,8 @@ class TestDatabase(object):
             'audio_bitrate': 127936,
             'last_pos': None,
             'video_fps': 25.0,
-            'path': u'tests/testdir/How.I.Met.Your.Mother.S01',
+            'path': unicode(os.path.abspath(
+                'tests/testdir/How.I.Met.Your.Mother.S01')),
             'subfilepath': None,
             'video_width': 704,
             'id': 5,
@@ -141,7 +142,8 @@ class TestDatabase(object):
           'video_format': u'XVID', 'video_bitrate': 336864,
           'video_height': 320, 'length': 23.640000000000001,
           'playeropts': None, 'num_played': None, 'audio_bitrate': 127936,
-          'last_pos': None, 'video_fps': 25.0, 'path': u'tests/testdir',
+          'last_pos': None, 'video_fps': 25.0,
+          'path': unicode(os.path.abspath('tests/testdir')),
           'subfilepath': None, 'video_width': 704, 'id': 1, 'size': 1422116}
         # We need to omit 'creation_date' from the assert, as its value
         # changes with each testrun
@@ -155,12 +157,3 @@ class TestDatabase(object):
     def testUpdateVideofiles(self):
         Videofile.update_all()
         assert Videofile.search().count() == 5
-
-    def testFindEpisodes(self):
-        Episode.find_episodes()
-        assert (Episode.search().count() == 2
-                and Show.search().count() == 1)
-
-    def testFindMultifileMovies(self):
-        Movie.find_multifile_movies()
-        assert Movie.search().count() == 1
