@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import json
+from datetime import timedelta
 
 import imdb
 from sqlalchemy import and_
@@ -21,6 +22,30 @@ def nested_jsonify(args):
     """Helper function to create a nested json response"""
     return kinowebapp.response_class(json.dumps(args, indent=None
         if request.is_xhr else 2), mimetype='application/json')
+
+@kinowebapp.template_filter('humansize')
+def humansize_filter(s):
+    """Converts sizes from bytes to a human readable format"""
+    num = int(s)
+    for x in ['bytes','KB','MB','GB','TB']:
+        if num < 1024.0:
+            return "%3.1f%s" % (num, x)
+        num /= 1024.0
+
+@kinowebapp.template_filter('humanduration')
+def humanduration_filter(s):
+    """Converts durations from seconds to a human readable format"""
+    if not s:
+        return "?h?m?s"
+    basetime = float(s)
+    hours = basetime//3600
+    minutes = (basetime%3600)//60
+    seconds = basetime - (hours*3600 + minutes*60)
+    try:
+        return "%d:%0*d:%0*d" % (hours, 2, minutes, 2, seconds)
+    except TypeError:
+        return "?:?:?"
+
 
 @kinowebapp.route('/')
 def index():

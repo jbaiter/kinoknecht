@@ -1,0 +1,76 @@
+body {
+    font-family: 'Mako', Tahoma, sans-serif;
+}
+
+a {
+    text-decoration: none;
+    color: #505050;
+}
+
+#logotitle, #sectiontitle {
+    margin-left: 1em;
+    font-family: 'OFL Sorts Mill Goudy TT', Garamond, serif;
+    display: inline-block;
+}
+
+ul#navtabs {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+ul#navtabs li {
+    display: inline;
+    border: solid;
+    border-width: 1px 1px 0 1px;
+    margin:  0.5em 0 0;
+}
+
+ul#navtabs li a {
+    padding: 0 1em;
+}
+
+table {
+    border: 1px solid black;
+    border-collapse: collapse;
+}
+
+tr.striped {
+    background-color: #F2F2F2;
+}
+
+tr.entryrow td, th {
+    padding: 0.25em;
+}
+
+tr.entryrow td {
+    border-right: 1px solid #d8d8d8;
+}
+
+tr.striped td {
+    border-right: 1px solid #ffffff;
+}
+
+th {
+    border-bottom: 1px solid black;
+}
+
+col#name {
+    width: 48em;
+}
+
+col#length {
+    width: 4em;
+}
+
+col#size {
+    width: 4em;
+}
+
+col#date {
+    width: 6em;
+}
+
+col#actions {
+    width: 86px
+}

@@ -3,17 +3,24 @@
 {% block content %}
     <div id="browse_table">
         <div id="tabs">
+
         {% block tabs %}
-            <a href="{{url_for('browse', category='file')}}">files</a> 
-            <a href="{{url_for('browse', category='movie')}}">movies</a> 
-            <a href="{{url_for('browse', category='show')}}">shows</a> 
-            <a href="{{url_for('browse', category='episode')}}">episodes</a> 
+        <ul id="navtabs">
+            <li><a href="{{url_for('browse', category='file')}}">files</a></li>
+            <li><a href="{{url_for('browse', category='movie')}}">movies</a></li>
+            <li><a href="{{url_for('browse', category='show')}}">shows</a></li>
+            <li><a href="{{url_for('browse', category='episode')}}">episodes</a></li>
+        </ul>
         {% endblock%}
+
         </div>
         <table>
+
             {% block table_rows %}
             {% endblock table_rows %}
+
         </table>
+
         {% block actions %}
             <select id="actioncombo">
                 <option value="">select action</option>
@@ -21,13 +28,16 @@
                 <option value="create_show">create/add to show</option>
             </select>
         {% endblock actions %}
+
     </div>
     <div id="browse_nav">
+
     {% if page > 1 %}
         <a href="{{url_for('browse', category=category, page=page-1)}}">previous</a>
     {% endif %}
     {% if objlist|count > 0 and page < (objlist[0].search().count()/50) %}
         <a href="{{url_for('browse', category=category, page=page+1)}}">next</a>
     {% endif %}
+
     </div>
 {% endblock content %}

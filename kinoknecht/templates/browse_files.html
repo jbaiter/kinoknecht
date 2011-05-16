@@ -1,4 +1,7 @@
 {% extends "browse_base.html" %}
+
+{% block title %}.files{% endblock %}
+
 {% block hidden %}
     <div style="display:none">
     <div id="imdb_window">
@@ -8,6 +11,7 @@
         <ul id=imdb_results></ul>
     </div>
     </div>
+
     <div style="display:none">
     <div id="show_window">
         <div id="searchbox">
@@ -18,26 +22,41 @@
     </div>
     </div>
 {% endblock hidden %}
+
 {% block table_rows %}
+    <colgroup>
+        <col id="tick" />
+        <col id="name" />
+        <col id="length" />
+        <col id="size" />
+        <col id="date" />
+        <col id="actions" />
+    </colgroup>
+    <thead>
     <tr>
-        <th><input type="checkbox" name="tickall" value="1"></th>
-        <th>filename</th>
-        <th>length</th>
-        <th>filesize</th>
-        <th>created</th>
-        <th>actions</th>
+        <th scope="col"><input type="checkbox" name="tickall" value="1"></th>
+        <th scope="col">name</th>
+        <th scope="col">length</th>
+        <th scope="col">size</th>
+        <th scope="col">date</th>
+        <th></th>
     </tr>
+    </thead>
+    
+    <tbody>
     {% for vfile in objlist %}
         <tr class="entryrow" id="{{vfile.id}}">
             <td><input type="checkbox" name="edittick" value="{{vfile.id}}"></td>
             <td>{{vfile.name}}</td>
-            <td>{{vfile.length}}</td>
-            <td>{{vfile.size}}</td>
-            <td>{{vfile.creation_date}}</td>
-            <td><a href="{{url_for('play', category=category, id=vfile.id)}}">play</a>.
-                <a href="#imdb_window" class="createmovie" rel="facybox">create movie</a>
-                <a href="#show_window" class="addtoshow" rel="facybox">add to show</a>
+            <td>{{vfile.length|humanduration}}</td>
+            <td>{{vfile.size|humansize}}</td>
+            <td>{{vfile.creation_date.strftime("%Y-%m-%d")}}</td>
+            <td><a href="{{url_for('play', category=category, id=vfile.id)}}"><img src="/static/images/icon_play.png" alt="play on server"/></a>
+                <a href="#imdb_window" class="createmovie" rel="facybox"><img src="/static/images/icon_addfilm.png" alt="create movie"/></a>
+                <a href="#show_window" class="addtoshow" rel="facybox"><img src="/static/images/icon_addshow.png" alt="add to show"/></a>
+                <a href="{{url_for('details', category='file', id=vfile.id)}}"><img src="/static/images/icon_info.png" alt="view details"/></a>
             </td>
         <tr>
     {% endfor %} 
+    </tbody>
 {% endblock %}

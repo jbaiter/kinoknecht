@@ -4,6 +4,8 @@
 <head>
 
 {% block head %}
+    <link href='http://fonts.googleapis.com/css?family=OFL+Sorts+Mill+Goudy+TT' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Mako' rel='stylesheet' type='text/css'>
     <link rel="stylesheet" href="/static/kinoknecht.css" />
     <link rel="stylesheet" href="/static/facybox.css" type="text/css" media="screen" />
     <script type="text/javascript" src="/static/jquery-1.4.3.min.js"></script>
@@ -23,7 +25,6 @@
 {% endblock %}
 
     <div id="header">
-        <a href="admin">admin</a>
 
         {% block header %}{% endblock %}
 
@@ -31,7 +32,7 @@
     <div id="title">
 
     {% block logo %}
-        <h1 id="logotitle">kinoknecht</h1><h3 id="sectiontitle">{{self.title()}}</h3>
+        <h1 id="logotitle">kinoknecht</h1><h2 id="sectiontitle">{{self.title()}}</h2>
     {% endblock %}
 
     </div>
@@ -44,7 +45,6 @@
 
         {% block footer %}
         {% endblock %}
-        kinoknecht git20110503
 
     </div>
 </body>

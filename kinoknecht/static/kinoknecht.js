@@ -10,6 +10,8 @@ function refreshIfDone() {
 $(document).ready(function(){
     // Set up facybox links
     $("a[rel*=facybox]").facybox({modal: true})
+    // Alternating colors for entry rows
+    $(".entryrow:even").addClass('striped');
 });
 
 
