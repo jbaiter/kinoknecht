@@ -346,6 +346,48 @@ class Episode(Base, KinoBase, MetadataMixin):
                               backref='episode')
     show_id = Column(Integer, ForeignKey('shows.id'))
 
+    @classmethod
+    def find_episodes(cls, *videofiles):
+        """ Finds episodes among videofiles (all if none specified) and
+        creates Episode and Show objects for them.
+        """
+        rexps = [
+            re.compile(
+        r'(?P<basename>.*)(?:S(?P<season>\d+)E(?P<episode>\d+)).*', re.I),
+            re.compile(
+        r'(?P<basename>.*)(?P<season>\d)(?P<episode>\d{2,3}).*', re.I)
+        ]
+
+        if not videofiles:
+            videofiles = Videofile.query
+        for vf in videofiles:
+            m = None
+            for r in rexps:
+                m = r.match(vf.name)
+                if m:
+                    break
+            if not m:
+                break
+            basename = m.group('basename')
+            season_num = m.group('season')
+            episode_num = m.group('episode')
+            show_query = Show.query.filter_by(basename=basename)
+            if show_query.count() != 1:
+                show = Show(basename=basename)
+                db_session.add(show)
+            else:
+                show = show_query.one()
+            episode_query = cls.query.filter_by(season_num=season_num,
+                                       episode_num=episode_num,
+                                       show=show)
+            episode_query = episode_query.filter(cls.videofiles.contains(vf))
+            if not episode_query:
+                episode = Episode(season_num, episode_num, show)
+                episode.videofiles.append(vf)
+                show.episodes.append(episode)
+                db_session.add(episode)
+        db_session.commit()
+
     def __init__(self, vfile):
         #TODO: Make regexps more robust, eg for tp02.avi (S0E2),
         #      skins1x07 (S1E7), skins_s1_e8 (S1E8),
@@ -394,3 +436,45 @@ class Movie(Base, KinoBase, MetadataMixin):
                               backref='movie')
     title = Column(Unicode)
     year = Column(Integer)
+
+    @classmethod
+    def find_multifile_movies(cls, *videofiles):
+        """ Finds movies that are split across several CDs/DVDs among
+        Videofile objects (all if none specified) and creates Movie objects
+        for them.
+        """
+        regexps = [
+            re.compile(
+            r'(?P<basename>.*)(?P<num>\d+) *of *(?:\d+).*', re.I),
+            re.compile(
+                r'(?P<basename>.*)(?:CD|DVD|Disc|Part) *(?P<num>\d+).*', re.I)
+            ]
+
+        if not videofiles:
+            videofiles = Videofile.query
+        # Find all related files among videofiles
+        relfiledict = {}
+        for vf in videofiles:
+            m = None
+            for r in regexps:
+                m = r.match(vf.name)
+                if m:
+                    break
+            if not m:
+                break
+            try:
+                basename = m.group('basename')
+            # This means the files are named like 'cd1.avi', etc, so we
+            # try to derive the basename from the parent directory
+            except:
+                basename = os.path.basename(vf.path)
+            if not basename in relfiledict.keys():
+                relfiledict[basename] = [vf]
+            else:
+                relfiledict[basename].append(vf)
+
+        # Create Movies for the files
+        for (basename, files) in relfiledict.iteritems():
+            #TODO: Query IMDb with basename as query to find metadata?
+            mov = Movie(videofiles=files, title=basename)
+            db_session.add(mov)

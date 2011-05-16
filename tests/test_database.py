@@ -157,3 +157,12 @@ class TestDatabase(object):
     def testUpdateVideofiles(self):
         Videofile.update_all()
         assert Videofile.search().count() == 5
+
+    def testFindEpisodes(self):
+        Episode.find_episodes()
+        assert (Episode.search().count() == 2
+                and Show.search().count() == 1)
+
+    def testFindMultifileMovies(self):
+        Movie.find_multifile_movies()
+        assert Movie.search().count() == 1
