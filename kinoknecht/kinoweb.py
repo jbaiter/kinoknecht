@@ -1,15 +1,16 @@
 from __future__ import absolute_import
 
 import json
-from datetime import timedelta
+import os
 
 import imdb
-from sqlalchemy import and_
-from flask import (Flask, render_template, request, redirect, url_for,
-                   jsonify)
+from sqlalchemy import and_, desc
+from flask import Flask, render_template, request
 
+import config
 from kinoknecht.database import db_session
 from kinoknecht.models import Videofile, Movie, Episode, Show
+from kinoknecht.player import Player
 
 
 kinowebapp = Flask(__name__)
@@ -17,6 +18,7 @@ kinowebapp = Flask(__name__)
 CATEGORIES = {'file': Videofile, 'movie': Movie, 'episode': Episode,
               'show': Show}
 i = imdb.IMDb()
+mplayer = Player(config.extra_args)
 
 def nested_jsonify(args):
     """Helper function to create a nested json response"""
@@ -59,7 +61,8 @@ def browse(page=1, category='file'):
     if category == 'unassigned':
         vflist = Videofile.query.filter(and_(Videofile.episode == None,
                                               Videofile.movie == None))
-        vflist = vflist.order_by(Videofile.name)[page*50-50: page*50]
+        vflist = (vflist.order_by(desc(Videofile.creation_date))
+                [page*50-50: page*50])
         return render_template('browse_files.html', objlist=vflist, page=page,
                                category=category)
     elif category not in CATEGORIES:
@@ -77,7 +80,7 @@ def browse(page=1, category='file'):
 
 
 @kinowebapp.route('/search', methods=['GET', 'POST'])
-def search(searchstr, category='movies', field='title', page=1):
+def search(searchstr, category='files', field='name', page=1):
     if category not in CATEGORIES:
         #TODO: Display error message to user
         return ""
@@ -121,8 +124,12 @@ def edit(category=None, id=None):
 @kinowebapp.route('/play/<category>/<int:id>')
 def play(category=None, id=None):
     """Locally plays back a given item from a recognized category"""
-    #TODO: Write me!
-    pass
+    if category not in CATEGORIES or not id:
+        return ""
+    if category == 'file':
+        vfile = Videofile.get(id)
+        mplayer.loadfile(os.path.join(vfile.path, vfile.name))
+        return "Success!"
 
 
 @kinowebapp.route('/_query_imdb')

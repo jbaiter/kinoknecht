@@ -3,18 +3,27 @@
   - daemonize
   - plugin api?
 
-* Protocol:
-  - proper abstraction? [query api, player api]
-  - search api platform-independent?
-  - error handling?
+* API
+   - move api functions from kinoweb proper to own api_handler (with simpleapi)
+   - create nice abstraction, think well through
+
 
 * Database
-  - videoentity baseclass, movie, tv-show, dvd as subclasses
-  - num played, lastpos, playeropts
+  - Allow Videofile to handle DVD-Images (*ISO; VIDEO_TS)
+  - Differentiate between extras and main
   - posterurl
-  - metadata fetching from imdb
+  - generate thumbnails/preview screens from videofiles (one every 10 minutes)
+  - move specs detection from mplayer to ffvideo/ffmpeg for performance
 
 * Playerbackend
   - get res, fbdev from environment
   - Better abstraction
   - restart if crashed or quitted
+  - store last position (file, seek) if stopped before finished
+  - add streaming option (using ffserver or mencoder [hacky!])
+
+* Webinterface
+  - sorting
+  - player interface
+  - edit interface
+  - streaming
