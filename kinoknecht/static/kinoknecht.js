@@ -46,18 +46,18 @@ $(function() {
         }
     });
 
-    $("#actioncombo").change(function() {
-        if ($(this).val() != '') {
+    $("a#moviemulti").bind('click', function() {
             vfiles = [];
             $('input[name="edittick"]:checked').each(function() {
                 vfiles.push($(this).val());
             });
-            if ($(this).val() == 'create_movie') {
-                $.facybox({div: '#imdb_window'})
-            } else if ($(this).val() == 'create_show') {
-                $.facybox({div: '#show_window'})
-            } else {}
-        } else {}
+    });
+
+    $("a#showmulti").bind('click', function() {
+            vfiles = [];
+            $('input[name="edittick"]:checked').each(function() {
+                vfiles.push($(this).val());
+            });
     });
 
     $('a.createmovie').bind('click', function() {

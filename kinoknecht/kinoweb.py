@@ -6,6 +6,7 @@ import os
 import imdb
 from sqlalchemy import and_, desc
 from flask import Flask, render_template, request
+from flaskext.sqlalchemy import Pagination
 
 import config
 from kinoknecht.database import db_session
@@ -17,13 +18,23 @@ kinowebapp = Flask(__name__)
 
 CATEGORIES = {'file': Videofile, 'movie': Movie, 'episode': Episode,
               'show': Show}
+PER_PAGE = 25
+
 i = imdb.IMDb()
 mplayer = Player(config.extra_args)
 
 def nested_jsonify(args):
+    #FIXME: This ommission on Flask's part is by design!
+    #       http://flask.pocoo.org/docs/security/#json-security 
     """Helper function to create a nested json response"""
     return kinowebapp.response_class(json.dumps(args, indent=None
         if request.is_xhr else 2), mimetype='application/json')
+
+def startidx(page):
+    return page * PER_PAGE - PER_PAGE
+
+def endidx(page):
+    return page * PER_PAGE
 
 @kinowebapp.template_filter('humansize')
 def humansize_filter(s):
@@ -59,24 +70,30 @@ def index():
 @kinowebapp.route('/browse/<category>/<int:page>')
 def browse(page=1, category='file'):
     if category == 'unassigned':
-        vflist = Videofile.query.filter(and_(Videofile.episode == None,
+        query = Videofile.query.filter(and_(Videofile.episode == None,
                                               Videofile.movie == None))
-        vflist = (vflist.order_by(desc(Videofile.creation_date))
-                [page*50-50: page*50])
-        return render_template('browse_files.html', objlist=vflist, page=page,
-                               category=category)
+        vflist = (query.order_by(desc(Videofile.creation_date))
+                  [startidx(page): endidx(page)])
+        pagination = Pagination(query, page, PER_PAGE, query.count(), vflist)
+        return render_template('browse_files.html', objlist=vflist,
+                               pagination=pagination, category=category)
+
     elif category not in CATEGORIES:
         return ""
+
     elif category == 'file':
-        vflist = (Videofile.search().order_by(Videofile.name)
-                  [page * 50 - 50: page * 50])
-        return render_template('browse_files.html', objlist=vflist, page=page,
-                               category=category)
+        query = Videofile.search().order_by(Videofile.name)
+        vflist= query[startidx(page): endidx(page)]
+        pagination = Pagination(query, page, PER_PAGE, query.count(), vflist)
+        return render_template('browse_files.html', objlist=vflist,
+                               pagination=pagination, category=category)
     else:
-        objlist = (CATEGORIES[category].search().order_by(
-                   CATEGORIES[category].title)[page * 50 - 50: page * 50])
-        return render_template('browse_meta.html', objlist=objlist, page=page,
-                               category=category)
+        query = (CATEGORIES[category].search().order_by(
+                   CATEGORIES[category].title))
+        objlist = query[page * 50 - 50: page * 50]
+        pagination = Pagination(query, page, PER_PAGE, query.count(), objlist)
+        return render_template('browse_meta.html', objlist=objlist,
+                               pagination=pagination, category=category)
 
 
 @kinowebapp.route('/search', methods=['GET', 'POST'])

@@ -23,6 +23,13 @@
     </div>
 {% endblock hidden %}
 
+{% block actions %}
+<div id="actions">
+    <a id="moviemulti" href="#imdb_window" rel="facybox"><img src="/static/images/icon_addfilm.png" alt="create movie"/></a>
+    <a id="showmulti" href="#show_window" rel="facybox"><img src="/static/images/icon_addshow.png" alt="add to show"/></a>
+</div>
+{% endblock %}
+
 {% block table_rows %}
     <colgroup>
         <col id="tick" />

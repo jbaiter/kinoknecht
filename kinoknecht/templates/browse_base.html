@@ -1,43 +1,75 @@
 {% extends "base.html" %}
 
+{% macro render_browsenav(current) %}
+<p id="browsenav">
+    {% if current == 'file' %}
+        <span id="currentnav">files</span>
+    {% else %}
+        <a href="{{url_for('browse', category='file')}}">files</a>
+    {% endif %}
+     // 
+    {% if current == 'movie' %}
+        <span id="currentnav">movies</span>
+    {% else %}
+        <a href="{{url_for('browse', category='movie')}}">movies</a>
+    {% endif %}
+     // 
+    {% if current == 'show' %}
+        <span id="currentnav">shows</span>
+    {% else %}
+        <a href="{{url_for('browse', category='show')}}">shows</a>
+    {% endif %}
+     // 
+    {% if current == 'unassigned' %}
+        <span id="currentnav">unassigned</span>
+    {% else %}
+        <a href="{{url_for('browse', category='unassigned')}}">unassigned</a>
+    {% endif %}
+</p>
+{% endmacro %}
+
+{% macro render_pagination(pagination, category) %}
+  <p id=pagination>
+  {% if pagination.has_prev %}
+      <a href="{{url_for('browse', category=category, page=1)}}">first</a>
+      /
+      <a href="{{url_for('browse', category=category, page=pagination.prev_num)}}">prev</a>
+  {% else %}
+      <span class="disabled">first</span>
+      /
+      <span class="disabled">prev</span>
+  {% endif %}
+  //
+  {%- for page in pagination.iter_pages() %}
+    {% if page %}
+      {% if page != pagination.page %}
+        <a href="{{ url_for('browse', category=category, page=page) }}">{{ page }}</a>
+      {% else %}
+        <strong>{{ page }}</strong>
+      {% endif %}
+    {% else %}
+      <span class=ellipsis>…</span>
+    {% endif %}
+  {%- endfor %}
+  //
+  {% if pagination.has_next %}
+      <a href="{{url_for('browse', category=category, page=pagination.next_num)}}">next</a>
+      /
+      <a href="{{url_for('browse', category=category, page=pagination.pages)}}">last</a>
+  {% else %}
+      <span class="disabled">next</span>
+      /
+      <span class="disabled">last</span>
+  {% endif %}
+  </p>
+{% endmacro %}
+
 {% block content %}
-    <div id="browse_table">
-        <div id="tabs">
-
-        {% block tabs %}
-        <ul id="navtabs">
-            <li><a href="{{url_for('browse', category='file')}}">files</a></li>
-            <li><a href="{{url_for('browse', category='movie')}}">movies</a></li>
-            <li><a href="{{url_for('browse', category='show')}}">shows</a></li>
-            <li><a href="{{url_for('browse', category='episode')}}">episodes</a></li>
-        </ul>
-        {% endblock%}
-
-        </div>
-        <table>
-
+        {{ render_browsenav(category) }}
+        {% block actions %}{% endblock actions %}
+        <table id="browse">
             {% block table_rows %}
             {% endblock table_rows %}
-
         </table>
-
-        {% block actions %}
-            <select id="actioncombo">
-                <option value="">select action</option>
-                <option value="create_movie">create movie</option>
-                <option value="create_show">create/add to show</option>
-            </select>
-        {% endblock actions %}
-
-    </div>
-    <div id="browse_nav">
-
-    {% if page > 1 %}
-        <a href="{{url_for('browse', category=category, page=page-1)}}">previous</a>
-    {% endif %}
-    {% if objlist|count > 0 and page < (objlist[0].search().count()/50) %}
-        <a href="{{url_for('browse', category=category, page=page+1)}}">next</a>
-    {% endif %}
-
-    </div>
+{{ render_pagination(pagination, category) }}
 {% endblock content %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block logo %}
+    <h1>{{obj.title}}
+    {% if type == 'show' %}
+        ({{obj.years}})
+    {% else %}
+        ({{obj.year}})
+    {% endif %}
+    </h1>
+{% endblock logo %}
+
+{% block content %}
+    <ul>
+        <li>{{obj.alt_titles}}</li>
+        <li>{{obj.plot}}</li>
+        <li>{{obj.languages}}</li>
+        <li>{{obj.runtimes}}</li>
+    {% if type == 'show' %}
+        </li>{{obj.years}}</li>
+    {% else %}
+        <li>{{obj.year}}</li>
+    {% endif %}
+    </ul>
+    {% if type == 'show' %}
+    Episodes:
+    <ul>
+    {% for epi in obj.episodes %}
+        <li>{{epi.videofiles[0].name}} (Season {{epi.season_num}}, Episode {{epi.episode_num}})</li>
+    {% endfor %}
+    </ul>
+    {% endif %}
+    {%if type == 'movie' %}
+    Videofiles:
+    {% for vfile in obj.videofiles %}
+        <li>{{vfile.name}}</li>
+    {% endfor %}
+    {% endif %}
+{% endblock content %}
