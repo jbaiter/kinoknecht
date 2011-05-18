@@ -202,9 +202,6 @@ class Videofile(Base, KinoBase):
         for viddir in vidtree.keys():
             for vidfile in vidtree[viddir]:
                 # Does the file already exist in the db?
-                logger.debug('Checking file %s' % unicode(vidfile))
-                logger.debug('Size: %d' % os.path.getsize(os.path.join(
-                    viddir, vidfile)))
                 dbentries = cls.query.filter_by(name=unicode(vidfile),
                         size=os.path.getsize(os.path.join(viddir, vidfile)))
                 if not dbentries.count():
