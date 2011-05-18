@@ -15,7 +15,7 @@ from sqlalchemy.ext.declarative import declared_attr
 import config
 from kinoknecht.midentify import midentify
 from kinoknecht.database import Base, db_session
-from kinoknecht.helpers import to_unicode
+from kinoknecht.helpers import to_unicode, imdbcontainer_to_json
 
 imdb = imdb.IMDb()
 logger = logging.getLogger("kinoknecht.models")
@@ -114,7 +114,9 @@ class MetadataMixin(object):
                 #       execution of arbitrary code, maybe pickeling would
                 #       be a better choice (would it really?)
                 if getattr(meta[imdbkey], '__iter__', False):
-                    meta[imdbkey] = to_unicode(meta[imdbkey])
+                    
+                    meta[imdbkey] = imdbcontainer_to_json(
+                                                       imdbkey, meta[imdbkey])
 
                 # We want to store 'year' as an Integer to allow for better
                 # sorting.
@@ -123,7 +125,8 @@ class MetadataMixin(object):
                 setattr(self, imdbkey, meta[imdbkey])
             elif imdbkey in imdbmap.keys():
                 if getattr(meta[imdbkey], '__iter__', False):
-                    meta[imdbkey] = to_unicode(meta[imdbkey])
+                    meta[imdbkey] = imdbcontainer_to_json(imdbkey, 
+                                                                meta[imdbkey])
                 setattr(self, imdbmap[imdbkey], meta[imdbkey])
 
 
