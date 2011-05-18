@@ -8,7 +8,7 @@ config.log_file = 'tests/logdir/dummy.log'
 config.db_file = 'tests/dummy.db'
 
 from kinoknecht.database import init_db, shutdown_db
-from kinoknecht.models import Videofile, Movie, Show, Episode
+from kinoknecht.models import Videofile, Movie
 
 TESTVIDSRC = 'tests/test.avi'
 TESTDIR = 'tests/testdir'
@@ -85,24 +85,14 @@ class TestDatabase(object):
 
     def testVideofileInfodict(self):
         expected = {
-            'audio_format': u'28781',
-            'name': u'How.I.Met.Your.Mother.S01E04.avi',
-            'video_format': u'XVID',
-            'video_bitrate': 336864,
-            'creation_date': '2011-04-16T12:53:17',
-            'video_height': 320,
-            'length': 23.640000000000001,
-            'playeropts': None,
-            'num_played': None,
-            'audio_bitrate': 127936,
-            'last_pos': None,
-            'video_fps': 25.0,
-            'path': unicode(os.path.abspath(
-                'tests/testdir/How.I.Met.Your.Mother.S01')),
-            'subfilepath': None,
-            'video_width': 704,
-            'id': 5,
-            'size': 1422116}
+            'audio_bitrate': None, 'audio_format': None,
+            'id': 5, 'last_pos': None, 'length': 23.640000000000001,
+            'name': u'How.I.Met.Your.Mother.S01E04.avi', 'num_played': None,
+            'path': os.path.abspath('tests/testdir/How.I.Met.Your.Mother.S01'),
+            'playeropts': None, 'size': 1422116, 'subfilepath': None,
+            'video_bitrate': None, 'video_format': u'mpeg4', 'video_fps': 25.0,
+            'video_height': 320, 'video_width': 704
+        }
         results = Videofile.get(5).get_infodict()
         # We need to omit 'creation_date' from the assert, as its value
         # changes with each testrun
@@ -138,13 +128,14 @@ class TestDatabase(object):
             Videofile.name.like('%meaning of life%')
         ).one().get_infodict()
         expected = {
-          'audio_format': u'28781', 'name': u'The Meaning of Life.avi',
-          'video_format': u'XVID', 'video_bitrate': 336864,
-          'video_height': 320, 'length': 23.640000000000001,
-          'playeropts': None, 'num_played': None, 'audio_bitrate': 127936,
-          'last_pos': None, 'video_fps': 25.0,
-          'path': unicode(os.path.abspath('tests/testdir')),
-          'subfilepath': None, 'video_width': 704, 'id': 1, 'size': 1422116}
+                'audio_bitrate': None, 'audio_format': None,
+                'id': 1, 'last_pos': None, 'length': 23.640000000000001,
+                'name': u'The Meaning of Life.avi', 'num_played': None,
+                'path': unicode(os.path.abspath('tests/testdir')),
+                'playeropts': None, 'size': 1422116, 'subfilepath': None,
+                'video_bitrate': None, 'video_format': u'mpeg4',
+                'video_fps': 25.0, 'video_height': 320, 'video_width': 704
+        }
         # We need to omit 'creation_date' from the assert, as its value
         # changes with each testrun
         for k, v in result.iteritems():

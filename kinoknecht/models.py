@@ -6,6 +6,7 @@ from datetime import datetime
 from mimetypes import types_map
 
 import imdb
+from ffvideo import VideoStream, FFVideoError
 from sqlalchemy import (Table, Column, Integer, Float, ForeignKey,
                         String, Unicode, Text, DateTime, and_)
 from sqlalchemy.orm import relationship, synonym
@@ -13,7 +14,6 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.ext.declarative import declared_attr
 
 import config
-from kinoknecht.midentify import midentify
 from kinoknecht.database import Base, db_session
 from kinoknecht.helpers import to_unicode, imdbcontainer_to_json
 
@@ -245,28 +245,22 @@ class Videofile(Base, KinoBase):
     def __init__(self, path, fname):
         path = os.path.abspath(path)
         fullpath = os.path.join(path, fname)
-        specs = midentify(fullpath)
-        if len(specs.keys) < 2:
-            logger.error(u"%s is not a recognizable video file!" % fname)
-            raise IOError(u"%s not a recognizable video file!" % fname)
-
         self.name = unicode(fname)
         self.path = unicode(path)
         self.size = os.path.getsize(fullpath)
         self.creation_date = datetime.fromtimestamp(
             os.path.getctime(fullpath))
-        self.length = specs['length']
-        self.video_width = specs['video_width']
-        self.video_height = specs['video_height']
-        self.video_bitrate = specs['video_bitrate']
-        self.video_fps = specs['video_fps']
 
-        try:
-            self.video_format = unicode(specs['video_format'])
-            self.audio_bitrate = specs['audio_bitrate']
-            self.audio_format = unicode(specs['audio_format'])
-        except KeyError:
-            pass
+        try: 
+            ffobj = VideoStream(fullpath)
+            self.length = ffobj.duration
+            self.video_width = ffobj.width
+            self.video_height = ffobj.height
+            self.video_fps = ffobj.framerate
+            self.video_format = unicode(ffobj.codec_name)
+        except FFVideoError:
+            logger.error(u"Video specs of %s cannot be determined!" % fname)
+
         logger.info(u"Added %s to database!" % to_unicode(fname))
 
     def __repr__(self):
