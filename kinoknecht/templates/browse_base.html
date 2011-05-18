@@ -64,9 +64,10 @@
   </p>
 {% endmacro %}
 
+{%block title %}.{{category}}{% endblock %}
+
 {% block content %}
         {{ render_browsenav(category) }}
-        {% block actions %}{% endblock actions %}
         <table id="browse">
             {% block table_rows %}
             {% endblock table_rows %}

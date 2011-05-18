@@ -1,7 +1,5 @@
 {% extends "browse_base.html" %}
 
-{% block title %}.files{% endblock %}
-
 {% block hidden %}
     <div style="display:none">
     <div id="imdb_window">
@@ -23,13 +21,6 @@
     </div>
 {% endblock hidden %}
 
-{% block actions %}
-<div id="actions">
-    <a id="moviemulti" href="#imdb_window" rel="facybox"><img src="/static/images/icon_addfilm.png" alt="create movie"/></a>
-    <a id="showmulti" href="#show_window" rel="facybox"><img src="/static/images/icon_addshow.png" alt="add to show"/></a>
-</div>
-{% endblock %}
-
 {% block table_rows %}
     <colgroup>
         <col id="tick" />
@@ -46,7 +37,10 @@
         <th scope="col">length</th>
         <th scope="col">size</th>
         <th scope="col">date</th>
-        <th></th>
+        <th scope="col">
+            <a id="moviemulti" href="#imdb_window" rel="facybox"><img src="/static/images/icon_addfilm.png" alt="create movie"/></a>
+            <a id="showmulti" href="#show_window" rel="facybox"><img src="/static/images/icon_addshow.png" alt="add to show"/></a>
+        </th>
     </tr>
     </thead>
     
@@ -63,7 +57,7 @@
                 <a href="#show_window" class="addtoshow" rel="facybox"><img src="/static/images/icon_addshow.png" alt="add to show"/></a>
                 <a href="{{url_for('details', category='file', id=vfile.id)}}"><img src="/static/images/icon_info.png" alt="view details"/></a>
             </td>
-        <tr>
+        </tr>
     {% endfor %} 
     </tbody>
 {% endblock %}

@@ -17,7 +17,7 @@ from kinoknecht.player import Player
 kinowebapp = Flask(__name__)
 
 CATEGORIES = {'file': Videofile, 'movie': Movie, 'episode': Episode,
-              'show': Show}
+              'show': Show, 'unassigned': Videofile}
 PER_PAGE = 25
 
 i = imdb.IMDb()
@@ -69,7 +69,11 @@ def index():
 @kinowebapp.route('/browse/<category>')
 @kinowebapp.route('/browse/<category>/<int:page>')
 def browse(page=1, category='file'):
-    if category == 'unassigned':
+
+    if category not in CATEGORIES:
+        return ""
+
+    elif category == 'unassigned':
         query = Videofile.query.filter(and_(Videofile.episode == None,
                                               Videofile.movie == None))
         vflist = (query.order_by(desc(Videofile.creation_date))
@@ -77,9 +81,6 @@ def browse(page=1, category='file'):
         pagination = Pagination(query, page, PER_PAGE, query.count(), vflist)
         return render_template('browse_files.html', objlist=vflist,
                                pagination=pagination, category=category)
-
-    elif category not in CATEGORIES:
-        return ""
 
     elif category == 'file':
         query = Videofile.search().order_by(Videofile.name)
@@ -92,8 +93,13 @@ def browse(page=1, category='file'):
                    CATEGORIES[category].title))
         objlist = query[page * 50 - 50: page * 50]
         pagination = Pagination(query, page, PER_PAGE, query.count(), objlist)
-        return render_template('browse_meta.html', objlist=objlist,
-                               pagination=pagination, category=category)
+        if category == 'movie':
+            return render_template('browse_movies.html', objlist=objlist,
+                                    pagination=pagination, category=category)
+        elif category == 'show':
+            return render_template('browse_shows.html', objlist=objlist,
+                                    pagination=pagination, category=category)
+
 
 
 @kinowebapp.route('/search', methods=['GET', 'POST'])
@@ -143,7 +149,7 @@ def play(category=None, id=None):
     """Locally plays back a given item from a recognized category"""
     if category not in CATEGORIES or not id:
         return ""
-    if category == 'file':
+    if category == 'file' or category == 'unassigned':
         vfile = Videofile.get(id)
         mplayer.loadfile(os.path.join(vfile.path, vfile.name))
         return "Success!"

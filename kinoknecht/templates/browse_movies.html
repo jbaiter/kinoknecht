@@ -1,39 +1,32 @@
 {% extends "browse_base.html" %}
+
 {% block table_rows %}
+    <colgroup>
+        <col id="title" />
+        <col id="year" />
+        <col id="director" />
+        <col id="country" />
+        <col id="actions" />
+    </colgroup>
+    <thead>
     <tr>
-        <th></th>
-        <th>type</th>
-        <th>title</th>
-        <th>year</th>
-        <th>author</th>
-        <th>country</th>
-        <th>runtime/# episodes</th>
-        <th>actions</th>
+        <th scope="col">title</th>
+        <th scope="col">year</th>
+        <th scope="col">director</th>
+        <th scope="col">country</th>
+        <th scope="col"></th>
+    </tr>
+    </thead>
+    
+    <tbody>
     {% for obj in objlist %}
-        <tr>
-            <td><input type="checkbox" name="{{obj.id}}" value="1">
-        {% if obj.__class__.__name__ == 'Movie' %}
+        <tr class="entryrow">
             <td><a href="{{url_for('details', category='movie', id=obj.id)}}">{{obj.title}}</a></td>
             <td>{{obj.year}}</td>
             <td>{{obj.director}}</td>
             <td>{{obj.country}}</td>
-            <td>{{obj.runtimes}}</td>
-        {% endif %}
-        {% if obj.__class__.__name__ == 'Episode' %}
-            <td><a href="{{url_for('details', category='episode', id=obj.id)}}">{{obj.show.title}} {{obj.season_num}}.{{obj.episode_num}}</a></td>
-            <td>{{obj.years}}</td>
-            <td>{{obj.director}}</td>
-            <td>{{obj.country}}</td>
-            <td>{{obj.runtimes}}</td>
-        {% endif %}
-        {% if obj.__class__.__name__ == 'Show' %}
-            <td><a href="{{url_for('details', category='show', id=obj.id)}}">{{obj.title}}</a></td>
-            <td>{{obj.years}}</td>
-            <td>{{obj.producer}}</td>
-            <td>{{obj.country}}</td>
-            <td>{{obj.episodes|count}}</td>
-        {% endif %}
-            <td><a href="{{url_for('play', category=category, id=obj.id)}}">play</a></td>
+            <td><a href="{{url_for('play', category=category, id=obj.id)}}"><img src="/static/images/icon_play.png" alt="play on server"/></a></td>
         <tr>
     {% endfor %}
+    </tbody>
 {% endblock table_rows %}
