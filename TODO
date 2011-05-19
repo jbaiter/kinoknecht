@@ -1,29 +1,31 @@
-* General
+* kinoknecht.py
   - cmdline options
   - daemonize
   - plugin api?
 
-* API
+* api_handler.py
    - move api functions from kinoweb proper to own api_handler (with simpleapi)
    - create nice abstraction, think well through
 
-
-* Database
+* models.py
   - Allow Videofile to handle DVD-Images (*ISO; VIDEO_TS)
   - Differentiate between extras and main
   - posterurl
   - generate thumbnails/preview screens from videofiles (one every 10 minutes)
   - move specs detection from mplayer to ffvideo/ffmpeg for performance
 
-* Playerbackend
+* player.py
   - get res, fbdev from environment
   - Better abstraction
   - restart if crashed or quitted
   - store last position (file, seek) if stopped before finished
   - add streaming option (using ffserver or mencoder [hacky!])
 
-* Webinterface
+* kinoweb.py
+  ===immediate===
   - sorting
   - player interface
   - edit interface
-  - streaming
+  =====future====
+  - downloading/http-streaming
+  - mms streaming through flashplayer
