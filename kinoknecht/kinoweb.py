@@ -9,6 +9,7 @@ from flask import Flask, render_template, request
 from flaskext.sqlalchemy import Pagination
 
 import config
+from kinoknecht.helpers import CATEGORIES
 from kinoknecht.database import db_session
 from kinoknecht.models import Videofile, Movie, Episode, Show
 from kinoknecht.player import Player
@@ -16,8 +17,6 @@ from kinoknecht.player import Player
 
 kinowebapp = Flask(__name__)
 
-CATEGORIES = {'file': Videofile, 'movie': Movie, 'episode': Episode,
-              'show': Show, 'unassigned': Videofile}
 PER_PAGE = 25
 
 i = imdb.IMDb()
@@ -101,9 +100,11 @@ def browse(page=1, category='file'):
                                     pagination=pagination, category=category)
 
 
-
-@kinowebapp.route('/search', methods=['GET', 'POST'])
-def search(searchstr, category='files', field='name', page=1):
+@kinowebapp.route('/search/', methods=['POST'])
+@kinowebapp.route('/search/<searchstr>')
+@kinowebapp.route('/search/<category>/<searchstr>')
+@kinowebapp.route('/search/<category>/<searchstr>/<int:page>')
+def search(searchstr=None, category='files', field='name', page=1):
     if category not in CATEGORIES:
         #TODO: Display error message to user
         return ""
@@ -115,10 +116,11 @@ def search(searchstr, category='files', field='name', page=1):
         return ""
     if not searchstr:
         return render_template('avdanced_search.html')
-    results = dbclass.query.filter(dbclass.__dict__[field].like(searchstr))
-    results = results.order_by(dbclass.id)[page*50-50: page*50]
-    return render_template('browse_files.html', objlist=results, page=page,
-                           category=category)
+    query = dbclass.query.filter(dbclass.__dict__[field].like(searchstr))
+    objlist = query.order_by(dbclass.id)[page * 50 - 50: page * 50]
+    pagination = Pagination(query, page, PER_PAGE, query.count(), objlist)
+    return render_template('browse_files.html', objlist=objlist, page=page,
+                           pagination=pagination, category=category)
 
 
 @kinowebapp.route('/details/<category>/<int:id>')
