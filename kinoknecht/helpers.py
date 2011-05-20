@@ -1,5 +1,8 @@
 import json
 
+CATEGORIES = {'file': Videofile, 'movie': Movie, 'episode': Episode,
+              'show': Show, 'unassigned': Videofile}
+
 def to_unicode(string):
     """ Force unicode on string"""
     #TODO: This smells, there must be a more proper way to do this
