@@ -1,7 +1,6 @@
 import os
 import re
 import logging
-import pdb
 from datetime import datetime
 from mimetypes import types_map
 
@@ -160,6 +159,9 @@ class Videofile(Base, KinoBase):
 
     num_played = Column(Integer, nullable=True)
     last_pos = Column(Integer, nullable=True)
+
+    # Synonym for 'name' to facilitate generic item rendering in frontends
+    title = synonym("name")
 
     @classmethod
     def browse(cls, path=None):

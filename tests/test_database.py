@@ -91,7 +91,8 @@ class TestDatabase(object):
             'path': os.path.abspath('tests/testdir/How.I.Met.Your.Mother.S01'),
             'playeropts': None, 'size': 1422116, 'subfilepath': None,
             'video_bitrate': None, 'video_format': u'mpeg4', 'video_fps': 25.0,
-            'video_height': 320, 'video_width': 704
+            'video_height': 320, 'video_width': 704,
+            'title': u'How.I.Met.Your.Mother.S01E04.avi'
         }
         results = Videofile.get(5).get_infodict()
         # We need to omit 'creation_date' from the assert, as its value
