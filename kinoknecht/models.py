@@ -5,7 +5,7 @@ from datetime import datetime
 from mimetypes import types_map
 
 import imdb
-from ffvideo import VideoStream, FFVideoError
+from ffvideo import VideoStream, FFVideoError, NoMoreData
 from sqlalchemy import (Table, Column, Integer, Float, ForeignKey,
                         String, Unicode, Text, DateTime, and_)
 from sqlalchemy.orm import relationship, synonym
@@ -251,13 +251,15 @@ class Videofile(Base, KinoBase):
             os.path.getctime(fullpath))
 
         try: 
-            ffobj = VideoStream(fullpath)
+            # FFVideo can't seem to handle Unicode strings, so we use
+            # UTF-8 byte strings.
+            ffobj = VideoStream(fullpath.encode('UTF-8'))
             self.length = ffobj.duration
             self.video_width = ffobj.width
             self.video_height = ffobj.height
             self.video_fps = ffobj.framerate
             self.video_format = unicode(ffobj.codec_name)
-        except FFVideoError:
+        except FFVideoError, NoMoreData:
             logger.error(u"Video specs of %s cannot be determined!" % fname)
 
         logger.info(u"Added %s to database!" % to_unicode(fname))
