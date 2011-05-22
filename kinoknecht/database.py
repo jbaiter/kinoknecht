@@ -5,12 +5,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
-import config
-
+from kinoknecht import config
 
 logger = logging.getLogger("kinoknecht.database")
-dbfile = os.path.abspath(config.db_file)
-engine = create_engine('sqlite:///' + dbfile, convert_unicode=True)
+engine = create_engine(config.db_address, convert_unicode=True)
 db_session = scoped_session(sessionmaker(bind=engine))
 Base = declarative_base()
 Base.query = db_session.query_property()

@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import logging
 import os
 
-import config
+from kinoknecht import config
 
 LOGLEVELS = {'debug': logging.DEBUG, 'info': logging.INFO,
              'warning': logging.WARNING, 'error': logging.ERROR,

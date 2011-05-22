@@ -2,7 +2,7 @@ import os
 import shutil
 from os.path import join
 
-import config
+from kinoknecht import config
 config.video_dirs = ['tests/testdir']
 config.log_file = 'tests/logdir/dummy.log'
 config.db_file = 'tests/dummy.db'

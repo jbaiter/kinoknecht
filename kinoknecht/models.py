@@ -12,7 +12,7 @@ from sqlalchemy.orm import relationship, synonym
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.ext.declarative import declared_attr
 
-import config
+from kinoknecht import config
 from kinoknecht.database import Base, db_session
 from kinoknecht.helpers import to_unicode, imdbcontainer_to_json
 
