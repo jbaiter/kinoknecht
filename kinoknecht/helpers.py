@@ -1,7 +1,12 @@
+from __future__ import absolute_import
+
 import json
 
-CATEGORIES = {'file': Videofile, 'movie': Movie, 'episode': Episode,
-              'show': Show, 'unassigned': Videofile}
+from kinoknecht.kinoweb import Videofile, Movie, Episode, Show
+
+
+CATEGORIES_CLASSES = {'file': Videofile, 'movie': Movie, 'episode': Episode,
+                      'show': Show, 'unassigned': Videofile}
 
 def to_unicode(string):
     """ Force unicode on string"""

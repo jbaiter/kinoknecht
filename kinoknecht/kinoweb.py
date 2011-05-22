@@ -9,16 +9,24 @@ from flask import Flask, render_template, request
 from flaskext.sqlalchemy import Pagination
 
 import config
-from kinoknecht.helpers import CATEGORIES
+from kinoknecht.helpers import CATEGORIES_CLASSES
 from kinoknecht.database import db_session
 from kinoknecht.models import Videofile, Movie, Episode, Show
 from kinoknecht.player import Player
 
 
-kinowebapp = Flask(__name__)
 
+CATEGORIES_BROWSETEMPLATES = {'file': 'browse_files.html',
+                              'movie': 'browse_movies.html',
+                              'show': 'browse_shows.html',
+                              'unassigned': 'browse_shows.html'}
+CATEGORIES_DETAILSTEMPLATES = {'file': 'details_file.html',
+                               'movie': 'details_movie.html',
+                               'show': 'details_show.html',
+                               'episode': 'details_episode.html'}
 PER_PAGE = 25
 
+kinowebapp = Flask(__name__)
 i = imdb.IMDb()
 mplayer = Player(config.extra_args)
 
@@ -29,10 +37,10 @@ def nested_jsonify(args):
     return kinowebapp.response_class(json.dumps(args, indent=None
         if request.is_xhr else 2), mimetype='application/json')
 
-def startidx(page):
+def get_page_startitem(page):
     return page * PER_PAGE - PER_PAGE
 
-def endidx(page):
+def get_page_enditem(page):
     return page * PER_PAGE
 
 @kinowebapp.template_filter('humansize')
@@ -68,36 +76,22 @@ def index():
 @kinowebapp.route('/browse/<category>')
 @kinowebapp.route('/browse/<category>/<int:page>')
 def browse(page=1, category='file'):
-
-    if category not in CATEGORIES:
+    if category not in CATEGORIES_CLASSES:
         return ""
 
     elif category == 'unassigned':
         query = Videofile.query.filter(and_(Videofile.episode == None,
                                               Videofile.movie == None))
-        vflist = (query.order_by(desc(Videofile.creation_date))
-                  [startidx(page): endidx(page)])
-        pagination = Pagination(query, page, PER_PAGE, query.count(), vflist)
-        return render_template('browse_files.html', objlist=vflist,
-                               pagination=pagination, category=category)
-
-    elif category == 'file':
-        query = Videofile.search().order_by(Videofile.name)
-        vflist= query[startidx(page): endidx(page)]
-        pagination = Pagination(query, page, PER_PAGE, query.count(), vflist)
-        return render_template('browse_files.html', objlist=vflist,
-                               pagination=pagination, category=category)
+        results = (query.order_by(desc(Videofile.creation_date))
+                  [get_page_startitem(page): get_page_enditem(page)])
     else:
-        query = (CATEGORIES[category].search().order_by(
-                   CATEGORIES[category].title))
-        objlist = query[page * 50 - 50: page * 50]
-        pagination = Pagination(query, page, PER_PAGE, query.count(), objlist)
-        if category == 'movie':
-            return render_template('browse_movies.html', objlist=objlist,
-                                    pagination=pagination, category=category)
-        elif category == 'show':
-            return render_template('browse_shows.html', objlist=objlist,
-                                    pagination=pagination, category=category)
+        dbclass = CATEGORIES_CLASSES[category]
+        query = dbclass.search().order_by(dbclass.title)
+        results = query[get_page_startitem(page): get_page_enditem(page)]
+    pagination = Pagination(query, page, PER_PAGE, query.count(), results)
+    return render_template(CATEGORIES_BROWSETEMPLATES[category],
+                            results=results, pagination=pagination,
+                            category=category)
 
 
 @kinowebapp.route('/search/', methods=['POST'])
@@ -105,11 +99,12 @@ def browse(page=1, category='file'):
 @kinowebapp.route('/search/<category>/<searchstr>')
 @kinowebapp.route('/search/<category>/<searchstr>/<int:page>')
 def search(searchstr=None, category='files', field='name', page=1):
-    if category not in CATEGORIES:
+    if category not in CATEGORIES_CLASSES:
         #TODO: Display error message to user
         return ""
-    dbclass = CATEGORIES[category]
-    searchstr = '%' + searchstr + '%'
+
+    dbclass = CATEGORIES_CLASSES[category]
+    searchstr = '%' + searchstr.lower().replace(' ', '%') + '%'
     if field not in dir(dbclass) or field.startswith('_'):
         # Filter out invalid and private fields
         #TODO: Display error message to user
@@ -117,10 +112,12 @@ def search(searchstr=None, category='files', field='name', page=1):
     if not searchstr:
         return render_template('avdanced_search.html')
     query = dbclass.query.filter(dbclass.__dict__[field].like(searchstr))
-    objlist = query.order_by(dbclass.id)[page * 50 - 50: page * 50]
-    pagination = Pagination(query, page, PER_PAGE, query.count(), objlist)
-    return render_template('browse_files.html', objlist=objlist, page=page,
-                           pagination=pagination, category=category)
+    results = (query.order_by(dbclass.id)
+                  [get_page_startitem(page): get_page_enditem(page)])
+    pagination = Pagination(query, page, PER_PAGE, query.count(), results)
+    return render_template(CATEGORIES_BROWSETEMPLATES[category],
+                           results=results, page=page, pagination=pagination,
+                           category=category)
 
 
 @kinowebapp.route('/details/<category>/<int:id>')
@@ -129,13 +126,11 @@ def details(category=None, id=None):
     if not category or not id:
         #TODO: Display error message
         return ""
-    if category not in CATEGORIES:
+    if category not in CATEGORIES_CLASSES:
         return ""
-    obj = CATEGORIES[category].get(id)
-    if category == 'file':
-        return render_template('details_file.html', obj=obj, type='file')
-    else:
-        return render_template('details_meta.html', obj=obj, type=category)
+    dbobj = CATEGORIES_CLASSES[category].get(id)
+    return render_template(CATEGORIES_DETAILSTEMPLATES[category], dbobj=dbobj,
+                           category=category)
 
 
 @kinowebapp.route('/edit/<category>/<int:id>')
