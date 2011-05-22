@@ -19,6 +19,7 @@ setup(name='kinoknecht',
       install_requires=[
           'Flask>=0.6.1',
           'SQLAlchemy>=0.6',
+          'Flask-SQLAlchemy>=0.11',
           'IMDbPy>=4.7',
           'FFVideo>=0.0.9'
       ]

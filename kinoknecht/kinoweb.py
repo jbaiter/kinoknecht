@@ -8,10 +8,10 @@ from sqlalchemy import and_, desc
 from flask import Flask, render_template, request
 from flaskext.sqlalchemy import Pagination
 
-import config
-from kinoknecht.helpers import CATEGORIES_CLASSES
+from kinoknecht import config
 from kinoknecht.database import db_session
-from kinoknecht.models import Videofile, Movie, Episode, Show
+from kinoknecht.models import (Videofile, Movie, Episode, Show,
+                               CATEGORIES_CLASSES)
 from kinoknecht.player import Player
 
 

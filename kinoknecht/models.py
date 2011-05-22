@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import os
 import re
 import logging
@@ -16,6 +18,8 @@ from sqlalchemy.ext.declarative import declared_attr
 from kinoknecht import config
 from kinoknecht.database import Base, db_session
 from kinoknecht.helpers import to_unicode, imdbcontainer_to_json
+
+
 
 imdb = imdb.IMDb()
 logger = logging.getLogger("kinoknecht.models")
@@ -398,3 +402,7 @@ class Movie(Base, KinoBase, MetadataMixin):
                               backref='movie')
     title = Column(Unicode)
     year = Column(Integer)
+
+CATEGORIES_CLASSES = {'file': Videofile, 'movie': Movie, 'episode': Episode,
+                      'show': Show, 'unassigned': Videofile}
+
