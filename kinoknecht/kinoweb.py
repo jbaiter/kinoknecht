@@ -19,7 +19,7 @@ from kinoknecht.player import Player
 CATEGORIES_BROWSETEMPLATES = {'file': 'browse_files.html',
                               'movie': 'browse_movies.html',
                               'show': 'browse_shows.html',
-                              'unassigned': 'browse_shows.html'}
+                              'unassigned': 'browse_files.html'}
 CATEGORIES_DETAILSTEMPLATES = {'file': 'details_file.html',
                                'movie': 'details_movie.html',
                                'show': 'details_show.html',
@@ -144,7 +144,7 @@ def edit(category=None, id=None):
 @kinowebapp.route('/play/<category>/<int:id>')
 def play(category=None, id=None):
     """Locally plays back a given item from a recognized category"""
-    if category not in CATEGORIES or not id:
+    if category not in CATEGORIES_CLASSES or not id:
         return ""
     if category == 'file' or category == 'unassigned':
         vfile = Videofile.get(id)

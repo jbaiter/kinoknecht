@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 version = "0.1"
 setup(name='kinoknecht',
@@ -13,14 +13,16 @@ setup(name='kinoknecht',
       author="Johannes Baiter",
       author_email="johannes.baiter@gmail.com",
       license="MIT",
-      packages=['kinoknecht'],
-      package_data = {'kinoknecht': ['tests/test.avi']},
+      packages=find_packages(),
+      include_package_data=True,
       scripts = ['kinoknecht/kinoknecht'],
       install_requires=[
           'Flask>=0.6.1',
           'SQLAlchemy>=0.6',
           'Flask-SQLAlchemy>=0.11',
           'IMDbPy>=4.7',
-          'FFVideo>=0.0.9'
+          'FFVideo>=0.0.9',
+          'PyMPlayer>=0.6.0',
+          'setuptools-git'
       ]
 )

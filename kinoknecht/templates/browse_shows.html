@@ -19,13 +19,13 @@
     </thead>
     
     <tbody>
-    {% for obj in objlist %}
+    {% for show in results %}
         <tr class="entryrow">
-            <td><a href="{{url_for('details', category=category, id=obj.id)}}">{{obj.title}}</a></td>
-            <td>{{obj.years}}</td>
-            <td>{{obj.producer}}</td>
-            <td>{{obj.country}}</td>
-            <td><a href="{{url_for('play', category=category, id=obj.id)}}"><img src="/static/images/icon_play.png" alt="play on server"/></a></td>
+            <td><a href="{{url_for('details', category=category, id=show.id)}}">{{show.title}}</a></td>
+            <td>{{show.years}}</td>
+            <td>{{show.producer}}</td>
+            <td>{{show.country}}</td>
+            <td><a href="{{url_for('play', category=category, id=show.id)}}"><img src="/static/images/icon_play.png" alt="play on server"/></a></td>
         <tr>
     {% endfor %}
     </tbody>

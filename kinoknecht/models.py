@@ -8,7 +8,7 @@ from hashlib import sha1
 from mimetypes import types_map
 
 import imdb
-from ffvideo import VideoStream, FFVideoError, NoMoreData
+from ffvideo import VideoStream
 from sqlalchemy import (Table, Column, Integer, Float, ForeignKey,
                         String, Unicode, Text, DateTime, and_)
 from sqlalchemy.orm import relationship, synonym
@@ -190,7 +190,7 @@ class Videofile(Base, KinoBase):
             self.video_height = ffobj.height
             self.video_fps = ffobj.framerate
             self.video_format = unicode(ffobj.codec_name)
-        except FFVideoError, NoMoreData:
+        except:
             logger.error(u"Video specs of %s cannot be determined!" % fname)
 
         logger.info(u"Added %s to database!" % to_unicode(fname))

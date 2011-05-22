@@ -19,13 +19,13 @@
     </thead>
     
     <tbody>
-    {% for obj in objlist %}
+    {% for movie in results %}
         <tr class="entryrow">
-            <td><a href="{{url_for('details', category='movie', id=obj.id)}}">{{obj.title}}</a></td>
-            <td>{{obj.year}}</td>
-            <td>{{obj.director}}</td>
-            <td>{{obj.country}}</td>
-            <td><a href="{{url_for('play', category=category, id=obj.id)}}"><img src="/static/images/icon_play.png" alt="play on server"/></a></td>
+            <td><a href="{{url_for('details', category='movie', id=movie.id)}}">{{movie.title}}</a></td>
+            <td>{{movie.year}}</td>
+            <td>{{movie.director}}</td>
+            <td>{{movie.country}}</td>
+            <td><a href="{{url_for('play', category=category, id=movie.id)}}"><img src="/static/images/icon_play.png" alt="play on server"/></a></td>
         <tr>
     {% endfor %}
     </tbody>
