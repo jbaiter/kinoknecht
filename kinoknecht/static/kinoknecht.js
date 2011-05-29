@@ -64,6 +64,12 @@ $(function() {
         // Stores the videofile id for later movie creation
         // TODO: There's got to be some other way...
         vfiles = [$(this).parents('.entryrow').attr('id')];
+        $.getJSON($SCRIPT_ROOT + '/_get_clean_name', {
+            vfid: vfiles[0]
+        }, function(data) {
+            console.debug(data);
+            $('input[name="imdbquery"]').val(data);
+        });
     });
 
     $('a#imdb_query').live('click', function() {

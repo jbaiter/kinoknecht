@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import json
 import os
+import re
 
 import imdb
 from sqlalchemy import and_, desc
@@ -152,10 +153,29 @@ def play(category=None, id=None):
         return "Success!"
 
 
+@kinowebapp.route('/_get_clean_name')
+def _get_clean_name(fname=None):
+    # For files that comply to scene filenaming "standards"
+    scene_rexp = re.compile(r'([\w\s]+)( \d{4})? (.+Rip) .*', re.I)
+    # That is one nasty sunnufabitch...
+    rexp = re.compile(r'(?:\d{4}\s*\-\s*?)?(?:[\w\s]*-\s*)?([\w\s\.\-]+)(?:\(?\d{4}\)?)?.*', re.I)
+    if not fname:
+        vfid = request.args.get('vfid', None)
+        fname = Videofile.get(int(vfid)).name
+    # Normalize the name by removing the extension and all dots
+    fname = os.path.splitext(fname)[0].replace('.', ' ')
+    fname_match = scene_rexp.match(fname)
+    if fname_match:
+        return fname_match.groups()[0].strip()
+    fname_match = rexp.match(fname)
+    if fname_match:
+        return fname_match.groups()[0].strip()
+    else:
+        return fname
+
 @kinowebapp.route('/_query_imdb')
 def _query_imdb():
     searchstr = request.args.get('searchstr', None)
-    print searchstr
     results = [dict(imdbid=entry.movieID,
         title=entry['long imdb canonical title'])
         for entry in i.search_movie(searchstr)]
