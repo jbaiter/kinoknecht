@@ -20,27 +20,32 @@ TESTMOVSUB = 'Spam and Eggs CD1.srt'
 TESTEPI1 = 'How.I.Met.Your.Mother.S01E04.avi'
 TESTEPI2 = 'How.I.Met.Your.Mother.108.avi'
 
+def create_dummy_env():
+    # Clean up if previous tests failed to do so
+    if os.path.exists(TESTDIR):
+        shutil.rmtree(TESTDIR)
+    # Set up test directories and files
+    os.mkdir(TESTDIR)
+    os.mkdir(TESTSHOW)
+    shutil.copyfile(TESTVIDSRC, join(TESTDIR, TESTMOV))
+    shutil.copyfile(TESTVIDSRC, join(TESTDIR, TESTCD1))
+    shutil.copyfile(TESTVIDSRC, join(TESTDIR, TESTCD2))
+    open(join(TESTDIR, TESTMOVSUB), 'w').close()
+    shutil.copyfile(TESTVIDSRC, join(TESTSHOW, TESTEPI1))
+    shutil.copyfile(TESTVIDSRC, join(TESTSHOW, TESTEPI2))
 
-class TestDatabase(object):
+def remove_dummy_env():
+    shutil.rmtree(TESTDIR)
+
+
+class TestModel(object):
     def setUp(self):
-        # Clean up if previous tests failed to do so
-        if os.path.exists(TESTDIR):
-            shutil.rmtree(TESTDIR)
-
-        # Set up test directories and files
-        os.mkdir(TESTDIR)
-        os.mkdir(TESTSHOW)
-        shutil.copyfile(TESTVIDSRC, join(TESTDIR, TESTMOV))
-        shutil.copyfile(TESTVIDSRC, join(TESTDIR, TESTCD1))
-        shutil.copyfile(TESTVIDSRC, join(TESTDIR, TESTCD2))
-        open(join(TESTDIR, TESTMOVSUB), 'w').close()
-        shutil.copyfile(TESTVIDSRC, join(TESTSHOW, TESTEPI1))
-        shutil.copyfile(TESTVIDSRC, join(TESTSHOW, TESTEPI2))
+        create_dummy_env()
         init_db()
         Videofile.update_all()
 
     def tearDown(self):
-        shutil.rmtree(TESTDIR)
+        remove_dummy_env()
         shutdown_db()
 
     def testSubtitleScan(self):

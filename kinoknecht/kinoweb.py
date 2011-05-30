@@ -1,20 +1,10 @@
 from __future__ import absolute_import
 
-import json
-import os
-import re
-
-import imdb
 from sqlalchemy import and_, desc
-from flask import Flask, render_template, request
+from flask import Flask, render_template
 from flaskext.sqlalchemy import Pagination
 
-from kinoknecht import config
-from kinoknecht.database import db_session
-from kinoknecht.models import (Videofile, Movie, Episode, Show,
-                               CATEGORIES_CLASSES)
-from kinoknecht.player import Player
-
+from kinoknecht.models import Videofile, CATEGORIES_CLASSES
 
 
 CATEGORIES_BROWSETEMPLATES = {'file': 'browse_files.html',
@@ -28,15 +18,6 @@ CATEGORIES_DETAILSTEMPLATES = {'file': 'details_file.html',
 PER_PAGE = 25
 
 kinowebapp = Flask(__name__)
-i = imdb.IMDb()
-mplayer = Player(config.extra_args)
-
-def nested_jsonify(args):
-    #FIXME: This ommission on Flask's part is by design!
-    #       http://flask.pocoo.org/docs/security/#json-security 
-    """Helper function to create a nested json response"""
-    return kinowebapp.response_class(json.dumps(args, indent=None
-        if request.is_xhr else 2), mimetype='application/json')
 
 def get_page_startitem(page):
     return page * PER_PAGE - PER_PAGE
@@ -139,96 +120,3 @@ def edit(category=None, id=None):
     """Displays a mask to edit the details of a given item"""
     #TODO: Write me!
     return render_template('edit.html', category=category, id=id)
-
-
-@kinowebapp.route('/play/')
-@kinowebapp.route('/play/<category>/<int:id>')
-def play(category=None, id=None):
-    """Locally plays back a given item from a recognized category"""
-    if category not in CATEGORIES_CLASSES or not id:
-        return ""
-    if category == 'file' or category == 'unassigned':
-        vfile = Videofile.get(id)
-        mplayer.loadfile(os.path.join(vfile.path, vfile.name))
-        return "Success!"
-
-
-@kinowebapp.route('/_get_clean_name')
-def _get_clean_name(fname=None):
-    # For files that comply to scene filenaming "standards"
-    scene_rexp = re.compile(r'([\w\s]+)( \d{4})? (.+Rip) .*', re.I)
-    # That is one nasty sunnufabitch...
-    rexp = re.compile(r'(?:\d{4}\s*\-\s*?)?(?:[\w\s]*-\s*)?([\w\s\.\-]+)(?:\(?\d{4}\)?)?.*', re.I)
-    if not fname:
-        vfid = request.args.get('vfid', None)
-        fname = Videofile.get(int(vfid)).name
-    # Normalize the name by removing the extension and all dots
-    fname = os.path.splitext(fname)[0].replace('.', ' ')
-    fname_match = scene_rexp.match(fname)
-    if fname_match:
-        return fname_match.groups()[0].strip()
-    fname_match = rexp.match(fname)
-    if fname_match:
-        return fname_match.groups()[0].strip()
-    else:
-        return fname
-
-@kinowebapp.route('/_query_imdb')
-def _query_imdb():
-    searchstr = request.args.get('searchstr', None)
-    results = [dict(imdbid=entry.movieID,
-        title=entry['long imdb canonical title'])
-        for entry in i.search_movie(searchstr)]
-    return nested_jsonify(results[0:9])
-
-@kinowebapp.route('/_create', methods=['POST'])
-def _create():
-    m_type = request.form['type']
-    if 'vfiles[]' in request.form:
-        vfiles = [Videofile.get(int(x)) for x in
-                  request.form.getlist('vfiles[]')]
-    if 'imdbid' in request.form:
-        imdbid = request.form['imdbid']
-    if 'title' in request.form:
-        title = request.form['title']
-
-    if m_type == 'movie':
-        mov = Movie(videofiles=vfiles)
-        try: mov.imdb_id = int(imdbid)
-        except NameError: pass
-        db_session.add(mov)
-        db_session.commit()
-        return str(mov.id)
-    elif m_type == 'show':
-        show = Show()
-        try: show.title = title
-        except NameError: pass
-        db_session.add(show)
-        db_session.commit()
-        return str(show.id)
-    elif m_type == 'episode':
-        episode = Episode(vfiles[0])
-        db_session.add(episode)
-        db_session.commit()
-        return str(episode.id)
-
-@kinowebapp.route('/_query')
-def _query():
-    """Simple query for objects by name"""
-    m_type = request.args.get('type')
-    searchstr = request.args.get('searchstr')
-    objtype = CATEGORIES[m_type]
-    results = [dict(id=entry.id, title=entry.title) for entry in
-            objtype.query.filter(objtype.title.like('%' + searchstr + '%'))]
-    return nested_jsonify(results)
-
-@kinowebapp.route('/_add_to_show', methods=['POST'])
-def _add_to_show():
-    """Adds one or more episodes to a show"""
-    showid = int(request.form['showid'])
-    episodes = [Episode.get(int(x))
-                for x in request.form.getlist('episodeids[]')]
-    show = Show.get(showid)
-    for epi in episodes:
-        show.episodes.append(epi)
-    return str(showid)

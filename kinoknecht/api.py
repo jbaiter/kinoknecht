@@ -6,17 +6,19 @@ import re
 from imdb import IMDb
 from simpleapi import Namespace, serialize
 
-import config
-from kinoknecht.helpers import CATEGORIES
+from kinoknecht import config
 from kinoknecht.database import db_session
 from kinoknecht.models import Videofile, Movie, Show, Episode
 from kinoknecht.player import Player
+
+CATEGORIES = {'file': Videofile, 'movie': Movie, 'show': Show,
+              'episode': Episode, 'unassigned': Videofile}
 
 imdb = IMDb()
 player = Player(config.extra_args)
 
 class DBApi(Namespace):
-    def create(category, vfiles, imdbid=None, title=None):
+    def create(category, vfiles=None, imdbid=None, title=None):
         if not imdbid and not title:
             return "Please specifiy either a title or an imdb id!"
         if category not in CATEGORIES:
@@ -94,6 +96,11 @@ class DBApi(Namespace):
         else:
             return fname
     get_clean_name.published = True
+
+    def update_database(self):
+        Videofile.update_all()
+        return True
+    update_database.published = True
 
 class PlayerApi(Namespace):
     def play(category, id):
