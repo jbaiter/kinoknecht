@@ -19,6 +19,9 @@ player = Player(config.extra_args)
 
 class DBApi(Namespace):
     def create(category, vfiles=None, imdbid=None, title=None):
+        """ Creates a new object in the given category, optionally assigning
+            vfiles, imdbid and/or title to it.
+        """
         if not imdbid and not title:
             return "Please specifiy either a title or an imdb id!"
         if category not in CATEGORIES:
@@ -46,7 +49,7 @@ class DBApi(Namespace):
     create.published = True
 
     def query(category, searchstr):
-        """Simple query for objects by name"""
+        """Simple query for objects by category and name"""
         try: objtype = CATEGORIES[category]
         except KeyError: return "Invalid category!"
         results = [dict(id=entry.id, title=entry.title) for entry in
@@ -65,6 +68,7 @@ class DBApi(Namespace):
     add_to_show.published = True
 
     def query_imdb(searchstr):
+        """Queries IMDb and returns a list of results"""
         results = [dict(imdbid=entry.movieID,
             title=entry['long imdb canonical title'])
             for entry in imdb.search_movie(searchstr)]
@@ -72,6 +76,9 @@ class DBApi(Namespace):
     query_imdb.published = True
 
     def get_clean_name(fname=None, vfid=None):
+        """ Returns a cleaned up version of fname (or of fname of Videofile
+            with vfid) to facilitate imdb queriyng.
+        """
         #TODO: Move this to a Videofile method?
         if not fname and not vfid:
             raise Exception(
@@ -98,6 +105,7 @@ class DBApi(Namespace):
     get_clean_name.published = True
 
     def update_database(self):
+        """Tells the database to update all its directories"""
         Videofile.update_all()
         return True
     update_database.published = True
