@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import os
 import json
 
 
@@ -31,3 +32,9 @@ def imdbcontainer_to_json(key, value):
     else:
         container = json.dumps(value)
     return json.dumps(container)
+
+def create_dl_link(vfile):
+    vf_path = os.path.join(vfile.path, vfile.name)
+    symlink = 'static/%s' % vfile.sha1hash
+    os.symlink(vf_path, 'static/%s' % vfile.sha1hash)
+    return symlink

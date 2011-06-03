@@ -1,5 +1,4 @@
 * General
-  - easier deployment (setup.py, distutils)
   - more succinct docstrings
   - python2.7 compatibility
   - forward-compatibility to 3.0
