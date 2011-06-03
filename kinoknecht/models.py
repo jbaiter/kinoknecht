@@ -2,6 +2,7 @@ import os
 import re
 import logging
 from datetime import datetime
+from hashlib import sha1
 from mimetypes import types_map
 
 import imdb
@@ -144,6 +145,7 @@ class Videofile(Base, KinoBase):
     path = Column(Unicode)
     size = Column(Integer)
     creation_date = Column(DateTime)
+    sha1hash = Column(Unicode)
 
     length = Column(Float)
     video_width = Column(Integer)
@@ -162,6 +164,35 @@ class Videofile(Base, KinoBase):
 
     # Synonym for 'name' to facilitate generic item rendering in frontends
     title = synonym("name")
+
+    def __init__(self, path, fname):
+        path = os.path.abspath(path)
+        fullpath = os.path.join(path, fname)
+        self.name = unicode(fname)
+        self.path = unicode(path)
+        self.size = os.path.getsize(fullpath)
+        self.creation_date = datetime.fromtimestamp(
+            os.path.getctime(fullpath))
+        # For performance reasons, we only hash the first 1MB of each file
+        with open(fullpath, 'r+b') as f:
+            self.sha1hash = sha1(f.read(1048576)).hexdigest()
+
+        try: 
+            # FFVideo can't seem to handle Unicode strings, so we use
+            # UTF-8 byte strings.
+            ffobj = VideoStream(fullpath.encode('UTF-8'))
+            self.length = ffobj.duration
+            self.video_width = ffobj.width
+            self.video_height = ffobj.height
+            self.video_fps = ffobj.framerate
+            self.video_format = unicode(ffobj.codec_name)
+        except FFVideoError, NoMoreData:
+            logger.error(u"Video specs of %s cannot be determined!" % fname)
+
+        logger.info(u"Added %s to database!" % to_unicode(fname))
+
+    def __repr__(self):
+        return "<Videofile('%s', '%s')>" % (self.name, self.path)
 
     @classmethod
     def browse(cls, path=None):
@@ -241,31 +272,6 @@ class Videofile(Base, KinoBase):
                 filedict[root] = matchlist
         return filedict
 
-    def __init__(self, path, fname):
-        path = os.path.abspath(path)
-        fullpath = os.path.join(path, fname)
-        self.name = unicode(fname)
-        self.path = unicode(path)
-        self.size = os.path.getsize(fullpath)
-        self.creation_date = datetime.fromtimestamp(
-            os.path.getctime(fullpath))
-
-        try: 
-            # FFVideo can't seem to handle Unicode strings, so we use
-            # UTF-8 byte strings.
-            ffobj = VideoStream(fullpath.encode('UTF-8'))
-            self.length = ffobj.duration
-            self.video_width = ffobj.width
-            self.video_height = ffobj.height
-            self.video_fps = ffobj.framerate
-            self.video_format = unicode(ffobj.codec_name)
-        except FFVideoError, NoMoreData:
-            logger.error(u"Video specs of %s cannot be determined!" % fname)
-
-        logger.info(u"Added %s to database!" % to_unicode(fname))
-
-    def __repr__(self):
-        return "<Videofile('%s', '%s')>" % (self.name, self.path)
 
     def _check_path(self, path):
         """ Checks if the Videofile exists in the specified path and if its

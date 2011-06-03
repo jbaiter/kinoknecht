@@ -92,7 +92,8 @@ class TestDatabase(object):
             'playeropts': None, 'size': 1422116, 'subfilepath': None,
             'video_bitrate': None, 'video_format': u'mpeg4', 'video_fps': 25.0,
             'video_height': 320, 'video_width': 704,
-            'title': u'How.I.Met.Your.Mother.S01E04.avi'
+            'title': u'How.I.Met.Your.Mother.S01E04.avi',
+            'sha1hash': u'de4167ee4347fda2796e2d5fe99183828e41bf61'
         }
         results = Videofile.get(5).get_infodict()
         # We need to omit 'creation_date' from the assert, as its value
@@ -135,6 +136,7 @@ class TestDatabase(object):
                 'path': unicode(os.path.abspath('tests/testdir')),
                 'playeropts': None, 'size': 1422116, 'subfilepath': None,
                 'video_bitrate': None, 'video_format': u'mpeg4',
+                'sha1hash': u'de4167ee4347fda2796e2d5fe99183828e41bf61',
                 'video_fps': 25.0, 'video_height': 320, 'video_width': 704
         }
         # We need to omit 'creation_date' from the assert, as its value
