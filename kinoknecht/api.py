@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
+import json
 import os
 import re
 
 from imdb import IMDb
-from simpleapi import Namespace, serialize
+from simpleapi import Namespace 
 
 from kinoknecht import config
 from kinoknecht.database import db_session
@@ -18,7 +19,7 @@ imdb = IMDb()
 player = Player(config.extra_args)
 
 class DBApi(Namespace):
-    def create(category, vfiles=None, imdbid=None, title=None):
+    def create(self, category, vfiles=None, imdbid=None, title=None):
         """ Creates a new object in the given category, optionally assigning
             vfiles, imdbid and/or title to it.
         """
@@ -26,8 +27,9 @@ class DBApi(Namespace):
             return "Please specifiy either a title or an imdb id!"
         if category not in CATEGORIES:
             return "Invalid category!"
-        vfiles = [Videofile.get(int(x)) for x in vfiles]
-        if 'imdbid':
+        if vfiles:
+            vfiles = [Videofile.get(int(x)) for x in vfiles]
+        if imdbid:
             imdbid = int(imdbid)
 
         obj = None
@@ -38,26 +40,26 @@ class DBApi(Namespace):
         elif category == 'episode':
             obj = Episode(vfiles[0])
 
-        try: obj.title = title
-        except NameError: pass
-        try: obj.imdb_id = int(imdbid)
-        except NameError: pass
+        if obj.title:
+            obj.title = title
+        if obj.imdb_id:
+            obj.imdb_id = int(imdbid)
 
         db_session.add(obj)
         db_session.commit()
         return obj.id
     create.published = True
 
-    def query(category, searchstr):
+    def query(self, category, searchstr):
         """Simple query for objects by category and name"""
         try: objtype = CATEGORIES[category]
         except KeyError: return "Invalid category!"
         results = [dict(id=entry.id, title=entry.title) for entry in
                 objtype.query.filter(objtype.title.like('%' + searchstr + '%'))]
-        return serialize(results)
+        return json.dumps(results)
     query.published = True
 
-    def add_to_show(showid, episodes):
+    def add_to_show(self, showid, episodes):
         """Adds one or more episodes to a show"""
         showid = int(showid)
         episodes = [Episode.get(int(x)) for x in episodes]
@@ -67,15 +69,17 @@ class DBApi(Namespace):
         return True
     add_to_show.published = True
 
-    def query_imdb(searchstr):
+    def query_imdb(self, searchstr):
         """Queries IMDb and returns a list of results"""
         results = [dict(imdbid=entry.movieID,
             title=entry['long imdb canonical title'])
             for entry in imdb.search_movie(searchstr)]
-        return serialize(results[0:9])
+        return json.dumps(results[0:9])
     query_imdb.published = True
 
-    def get_clean_name(fname=None, vfid=None):
+    def get_clean_name(self, fname=None, vfid=None):
+        #FIXME: There seems to be a nasty bug in simpleapi relating to
+        #       years in filenames. Try running the tests and see foryourself.
         """ Returns a cleaned up version of fname (or of fname of Videofile
             with vfid) to facilitate imdb queriyng.
         """
@@ -111,31 +115,31 @@ class DBApi(Namespace):
     update_database.published = True
 
 class PlayerApi(Namespace):
-    def play(category, id):
+    def play(self, category, id):
         vfile = Videofile.get(id)
         player.loadfile(os.path.join(vfile.path, vfile.name))
         return True
     play.published = True
 
-    def pause():
+    def pause(self):
         player.pause()
         return True
     pause.published = True
 
-    def stop():
+    def stop(self):
         player.stop()
         return True
     stop.published = True
 
-    def seek(position):
+    def seek(self, position):
         player.seek(position)
         return True
     seek.published = True
 
-    def load_subtitle(subid):
+    def load_subtitle(self, subid):
         subpath = os.path.abspath(Videofile.subfilepaths[subid])
         player.sub_load(subpath)
 
-    def get_position():
+    def get_position(self):
         return player.time_pos
 

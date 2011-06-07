@@ -23,14 +23,14 @@ class TestApi(object):
 
     def testCreateMovie(self):
         objid = client.create(category='movie', vfiles=[1,2], imdbid=85959)
-        assert objid == 0
+        assert objid == 1
 
     def testCreateShow(self):
-        objid = client.create('show')
-        assert objid == 0
+        objid = client.create(category='show', title='Dummy')
+        assert objid == 1
 
     def testQuery(self):
-        results = client.query('file', 'spam')
+        results = client.query(category='file', searchstr='spam')
         pprint(results)
         assert results
 
@@ -38,6 +38,7 @@ class TestApi(object):
         results = client.query_imdb(searchstr='meaning of life')
         pprint(results)
         assert results
+
 
     def testGetCleanName(self):
         dirty_clean = {'The.Matrix.1998.DVDRip.XviD-KG.avi': 'The Matrix',
