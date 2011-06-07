@@ -77,6 +77,11 @@ class DBApi(Namespace):
         return json.dumps(results[0:9])
     query_imdb.published = True
 
+    def details(self, category, id):
+        """Returns a dictionary with details for a given record"""
+        infodict = CATEGORIES[category].get(id).get_infodict()
+        return json.dumps(infodict)
+
     def get_clean_name(self, fname=None, vfid=None):
         #FIXME: There seems to be a nasty bug in simpleapi relating to
         #       years in filenames. Try running the tests and see foryourself.

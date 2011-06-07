@@ -35,6 +35,6 @@ def imdbcontainer_to_json(key, value):
 
 def create_dl_link(vfile):
     vf_path = os.path.join(vfile.path, vfile.name)
-    symlink = 'static/%s' % vfile.sha1hash
-    os.symlink(vf_path, 'static/%s' % vfile.sha1hash)
+    symlink = 'static/%s' % vfile.sha1hash[0:7]
+    os.symlink(vf_path, os.path.abspath('static/%s' % vfile.sha1hash))
     return symlink
